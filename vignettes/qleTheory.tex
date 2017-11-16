@@ -1,0 +1,59 @@
+In this section we sketch the main aspects of the general QL theory, see
+\cite{ref:Heyde1997}. Let $X$ be a random variable on the sample space $\X$ whose
+distribution $\Ptheta$ depends on the unknown parameter $\theta\in\Theta$ taking values
+in an open subset $\Theta$ of the $q$-dimensional Euclidean space $\Rq$.
+The goal is to estimate $\theta$ given the observed data $x=X$. We
+assume that the family of models $\Ptheta$ is rich enough to characterise and distinguish
+different values of the generative parameters. Let $T : \X\rightarrow \Rp$ with $p\geq q$ be a
+transformation function of the data to a set of summary statistics and $y = T(x)$ is the respective
+(column) vector of summary statistics. We follow the QS estimating function
+approach to estimate $\theta$ by equating the QS
+\begin{equation}\label{score}
+  Q(\theta,y)=\left( \frac{\partial\Et[T(X)]}{\partial\theta} \right)^t \mathrm{Var}_{\theta}(T(X))^{-1}(y-\Et[T(X])
+\end{equation}
+to zero, where $(\cdot)^t$ denotes transpose, and, respectively, $\Et$ and
+$\var$ denote expectation and variance w.r.t. $\Ptheta$.\par
+%
+For a fixed vector of summary statistics $T\in\R^p$ we focus on the function
+$G(\theta,y)=y-\Et\left[T(X)\right]$ as a vector of dimension $p$, for which
+$\Et\left[G\right]=0$ for each $\Ptheta$ and for which
+the $p$-dimensional matrices $\Et\left[\partial G/\partial\theta\right]$
+and $\Et\left[GG^t\right]$ are nonsingular.
+The QS estimating function in \eqref{score} is the standardized estimating
+function
+\begin{equation}
+ \tilde{G} = -\left(\Et\left[\frac{\partial G}{\partial \theta}\right]\right)^t (\Et\left[GG^t\right])^{-1}G
+\end{equation}
+for which the information criterion
+\begin{equation}\label{information}
+\mathcal{E}(G) = \Et\left[\tilde{G}\tilde{G}^t\right] = \left( \Et\left[\frac{\partial G}{\partial \theta}\right]\right)^t (\Et[GG^t])^{-1}
+\left(\Et\left[\frac{\partial G}{\partial \theta}\right]\right)
+\end{equation}
+is maximized in the partial order of non-negative definite matrices among all
+\emph{linear} unbiased estimating functions
+of the form $A(\theta)(y-\Et\left[(T(X)\right]$, where $A(\theta)$ is any
+nonsingular matrix. The information criterion in \eqref{information} is seen as generalization of the
+well-known Fisher information since it coincides with the Fisher information in case a likelihood is available
+such that $G$ equals the score function in ML theory. Then, in analogy to ML
+estimation, the inverse of $\mathcal{E}(G)$ has a direct interpretation as the asymptotic variance of
+the estimator $\thetaOest$. Moreover, $\mathcal{E}(G)$ might serve
+as a measure of how much the statistics $T$ contribute to the precision of the
+estimator derived from the QS equation. Under rather minor regularity conditions, the
+estimator $\thetaOest$ obtained from solving the estimating equation $Q(\thetaOest,y)=0$ has minimum
+asymptotic variance among all functions $G$ and consistency \citep[see,
+e.\,g.][]{ref:Liang1995} is established due to the unbiasedness assumption of
+the estimating equation in \eqref{score} which yields, in terms of its root, a
+consistent estimator $\thetaOest$ even if the covariance structure is not correctly specified. The
+information criterion in \eqref{information}, given a vector $T$ of summary
+statistics, then reads
+\begin{equation}\label{qi}
+ I(\theta) = \var(Q(\theta,T(X)))= \left( \frac{\partial \Et\left[T(X)\right]}{\partial\theta} \right)^t \var(T(X))^{-1}
+ \left( \frac{\partial \Et\left[T(X)\right]}{\partial\theta} \right),
+\end{equation}
+which we call \emph{quasi-information} (QI) matrix in what follows. In
+particular, if we had an analytical or at least a numerically tractable form of the
+involved expectations and variances, we could apply a gradient based method to
+solve the QS equation similar to finding a root of the score vector in ML estimation. However, since closed-form
+representations of expectations and variances are generally unavailable for
+complex statistical models or prohibitive to compute we assume that we can only simulate realizations
+of the random variable $\mathrm{X}$ under $\Ptheta$ at any $\theta\in\Theta$.\par

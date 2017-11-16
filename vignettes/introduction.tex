@@ -1,0 +1,162 @@
+The \proglang{R} package \pkg{qle} implements methods for parametric inference
+for a generic class of estimation problems where we can at least simulate a
+(hypothesized) statistical model and compute certain summary statistics of
+the resulting model outcome. The method is an extended and modified
+version of the algorithm proposed in \citet{Baaske2014}. The aim of this paper
+is to present the algorithmic framework of our simulation-based quasi-likelihood
+estimation (SQLE) approach for parametric statistical models. The method
+employes the first two moments of the involved summary statistics by simulation and
+constructs a quasi-likelihood approximation for estimating the statistical model
+parameter.\par
+%
+We assume that, given the data, no closed-form expressions or direct computation
+algorithms of likelihood functions or distribution characteristics, as functions of the
+model parameter, are available. One may also be unable or reluctant to formulate
+a likelihood function for complex statistical models. This precludes many standard
+estimation methods, such as \emph{maximum likelihood} (ML) estimation,
+typical Bayesian algorithms (including Markov-Chain-Monte-Carlo-type algorithms), or (generalized) least
+squares (LS) based on exact distribution characteristics. In many settings, it is still conceptually
+possible to consider some observed data as a realization of a vector of random
+variables whose joint distribution depends on an unknown parameter. If a statistical model provides enough
+information about the data generating process, we can think of it as partially
+specifying some aspects of the distribution. However, it may be still possible to approximately compute
+characteristics of the data as Monte Carlo estimates from computer simulations.
+Such characteristics can be any sort of descriptive summary statistics which carry ''enough`` information
+about the unknown dependency between simulated realizations and the model
+parameter. Usually, these ''informative`` statistics are context-dependent and can be specifically tailored for the
+setting of the parameter estimation problem under investigation.\par
+%
+\subsection{Quasi-likelihood approach}
+If we could simulate the statistical model fast enough such that the Monte Carlo
+error of the statistics becomes neglectable, a general approach for estimating
+the model parameter would be to minimize some measure of discrepancy, i.\,e.
+a criterion function, finding those parameters which lead to simulated
+statistics most similar to the observed ones in the sense of a least squares, minimum contrast criterion,
+or, more generally, estimating functions approach, see \citet{Godambe1991} and
+also \cite{Jesus871}\footnote{For a more recent review on estimating functions
+and its relation to other methods}.
+The estimator of the true model parameter could then be found by a standard
+numerical solver. However, complex statistical models usually require very
+time-consuming, computationally intensive simulations and typically the Monte Carlo error cannot
+be made small enough within a reasonable timeframe such that any direct
+application of the above estimation approaches would become numerically infeasible.\par
+%
+Conceptually, our method is based on the class of linear estimating functions in
+its most general form of minimum (asymptotic) variance unbiased estimation. We adapt the so-called
+\emph{quasi-score} (QS) estimating function to the setting where generated
+realizations of the statistical model can be characterised by a set of appropriately chosen summary
+statistics. The derivation of the QS is part of the general approach of
+\emph{quasi-likelihood} (QL) estimation, see \citet{ref:Heyde1997}, which subsumes standard parameter
+estimation methods such as, for example, ML or (weighted) LS. The QL estimator
+is finally derived from the solution to the QS equation (see Section \ref{sec:QL}).
+As a common starting point the QS can be seen as a gradient specification
+similar to the score vector in ML theory. If a likelihood is available, both
+functions coincide and the score function from ML is an optimal estimating
+function in the sense of QL.\par
+%
+Except in some rare cases, when expectations, derivatives thereof and variances
+of the statistics are known at least numerically, any kind of criterion function derived from one
+of the above criteria, including the QL approach, would lack a closed-form
+expression and could only be computed slowly with substantial random error either due to the inherent
+simulation variance or erroneous evaluation of the involved statistics. In fact,
+nothing is said about a QL function in theory which could be employed as an
+objective function for minimization in order to derive an estimate of the true
+model parameter. Therefore, our idea is to treat such a function as a black box
+objective function and to transform the general parameter estimation problem into a simulation-based
+optimization setting with an expensive objective function. For this kind of
+optimization problem it is assumed that derivative information is either not available or
+computationally prohibitive such that gradient-based or Newton-type methods are not directly applicable.\par
+%
+\subsection{Background on black box optimization}
+A general problem which holds both for finding a minimum of an expensive
+objective function or a solution to the QS equation is to efficiently explore
+the parameter search space when only a limited computational budget is
+available for simulation. A suitable approach for this kind of problem relies on
+the use of response surface models in place of the original black box function for optimization.
+Examples include first-degree and second-degree (multivariate) polynomial
+approximations of response functions, which are broadly used, for example, in
+the \emph{response surface methodology}, see \citet{ref:Myers1995}. Another
+approach includes the \emph{kriging methodology}
+\citep[see, e.\,g.][]{ref:Sacksb1989,ref:Cressie1993,ref:Kleijnen2009} which treats the response of
+an objective function as a realization of a stochastic process. The main idea is to start by evaluating
+the expensive function at sampled points of a generated (space-filling)
+experimental design over the whole parameter space.
+Then a global response surface model is constructed and fitted based on the
+initially evaluated design points and further used to identify promising points
+for subsequent function evaluations. This process is repeated, now including the
+newly evaluated points, for sequential updates of the response surface model.
+In order to improve the model within subsequent iterations the aim is to select
+new evaluation points which help to estimate the location of the optimum, that is, the unknown parameter
+in our setting, and, at the same time, identifying sparsely sampled regions of
+the parameter search space where little information about the criterion
+function is available.\par
+%
+In this context, kriging has become very popular mainly for two reasons: first,
+it allows to capture and exploit the data-inherent smoothness properties by
+specifically tuned covariance models which measure the spatial dependency of the
+response variable and, second, it provides an indication of the overall
+achievable prediction or estimation accuracy. Almost all kriging-based global
+optimization methods, such as the well-known \emph{Efficient Global
+Optimization} algorithm by \citet{ref:Jones1998}, are based on the evaluation of
+kriging prediction variances in one way or another\footnote{See \citet{ref:Jones2001} for a comprehensive overview
+of kriging-based surrogate modelling.}. Although these models have been widely used
+in the community of global optimization of expensive black box functions with applications to engeneering and
+economic sciences these seem to be less popular in the context of
+simulation estimation.\par
+%
+\subsection{Main contribution}
+Opposed to the general framework of black box optimization, where
+some scalar-valued objective function is directly constructed via
+kriging, we propose the use of kriging models for each involved summary
+statistic separately because, unlike the QS function itself, only the statistics can be estimated
+unbiasedly from simulations. Based on these multiple kriging models we
+construct an approximating QS estimating function and estimate the unknown model parameter as a root
+of the resulting QS vector. Therefore, our main contribution is to combine the
+QL estimation approach with a black box framework that allows to handle time-consuming simulations
+of complex statistical models for an efficient estimation of the parameter of a
+hypothesized true model when only a limited computational budget is available. Besides this, the use
+of kriging models enables the estimation procedure to be guided towards regions
+of the parameter space where the unknown model parameter can be found with some probability and
+hence helps to save computing resources during estimation.\par
+%
+It is worth noting that there exist other \proglang{R} packages which make use
+of the QL concept in one or another way. For example, the function \code{glm}
+\citep{pkg:stats} for fitting a \emph{generalized linear model} is closely
+related to the estimation theory by \citet{ref:Wedder1974} which is known
+under the general term of \emph{quasi-likelihood methods}. From the viewpoint of
+estimating functions this approach can be considered a special case of the
+more general QL theory in \citet{ref:Heyde1997}. Also the package \code{gee}
+\citep{pkg:gee} is made for a rather different setting which uses the
+moment-based \emph{generalized estimating equations}, see \citet{ref:Liang1986}.
+This package mostly deals with analysing clustered and longitudinal data which
+typically consist of a series of repeated measurements of usually correlated
+response variables. Further, the package \pkg{gmm} \citep{ref:pkgGMM} implements
+the \emph{generalized method of moments} \citep{ref:Hansen1982} for situations
+in which the moment conditions are available as closed-form expressions.
+However, if the population moments are too difficult to compute, one can apply the
+\emph{simulated method of moments} (SMM), see \citet{ref:McFadden1989}. The 
+moment conditions are then evaluated as functions of the parameter by Monte
+Carlo simulations. Also, the package \pkg{spatstat} \citep{pkg:spatstat}
+includes a so-called quasi-likelihood method. However, the implementation is
+specifically made for the analysis of point process models.\par
+%
+Our method is specifically designed to deal with situations where only a single
+measurement (i.\,e. ''real-world`` observation or raw data) is available and
+from which we can compute the (observed) summary statistics. To this end, we
+assume that we can define and simulate a parametric statistical model which reveals
+some information about the underlying data generating process. Then the
+parameter of interest (under this model) is inferred from a solution to the QS equation based
+on these statistics. The computational complexity of our method is, therefore,
+mostly dominated by the effort of simulating the statistical model and evaluating the involved statistics.
+The main aim of the package is to provide an efficient implementation for
+generic parameter estimation problems which combines the involved statistics
+into a tractable estimating function for simulation when no other types of
+parametric inference can be applied.\par
+%
+The vignette is organized as follows. In Section \ref{sec:QL} we briefly
+present the basic theory of QL estimation followed by an outline of the main
+algorithm in Section \ref{sec:SQLE}. We discuss some extensions of our originally
+proposed algorithm in Section \ref{sec:extent}. Finally, in Section
+\ref{sec:Restim}, we provide some illustrative examples of a typical workflow of
+using the package.
+%
