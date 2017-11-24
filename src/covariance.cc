@@ -8,9 +8,10 @@
  *
  */
 
-#include "auxil.h"
-#include "error.h"
+
 #include "covariance.h"
+
+#include <Rmath.h>
 
 #define ZERO_ELEMENT 0
 #define MIN_DISTANCE 1e-16
@@ -18,6 +19,17 @@
 #define MATERN_NU_TOL 100
 #define MATERN_RESULT_TOL 1e-16
 
+SEXP getListElement (SEXP list, const char *str) {
+     SEXP elmt = R_NilValue;
+     SEXP names = getAttrib(list, R_NamesSymbol);
+
+     for (int i = 0; i < length(list); i++)
+         if(std::strcmp(CHAR(STRING_ELT(names, i)), str) == 0) {
+             elmt = VECTOR_ELT(list, i);
+             break;
+         }
+     return elmt;
+}
 
 cov_model_s::cov_model_s(SEXP R_Cov) :
   	param(0),npar(0),

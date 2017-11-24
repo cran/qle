@@ -7,27 +7,13 @@
  *
  */
 
-#include <R.h>
-#include <Rmath.h>
-#include <R_ext/Lapack.h>
-#include <R_ext/Linpack.h>
-
 #include "auxil.h"
 #include "error.h"
 
+#include <R_ext/Lapack.h>
+#include <R_ext/Linpack.h>
+
 int check_Lapack_error( int info, const char* name, int line, const char *file);
-
-SEXP getListElement (SEXP list, const char *str) {
-     SEXP elmt = R_NilValue;
-     SEXP names = getAttrib(list, R_NamesSymbol);
-
-     for (int i = 0; i < length(list); i++)
-         if(std::strcmp(CHAR(STRING_ELT(names, i)), str) == 0) {
-             elmt = VECTOR_ELT(list, i);
-             break;
-         }
-     return elmt;
- }
 
 /** \brief Merge cholesky decomposition into matrix
  *         V=t(L)%*%L
@@ -405,10 +391,8 @@ int check_Lapack_error(int info, const char* name, int line, const char *file)
   else if(info > 0)
     std::sprintf(MSG, "Lapack function %s returned error code %d \n ", name, info);
 
-  if(PL > 0)
-    PRINT_MSG(MSG);
+  PRINT_MSG(MSG);
 
-  setError( LAPACK_ERROR, MSG, line, file, info);
   return LAPACK_ERROR;
 }
 

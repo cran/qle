@@ -9,10 +9,6 @@
 #ifndef AUX_H_
 #define AUX_H_
 
-#include <R.h>
-#include <Rmath.h>
-#include <Rinternals.h>
-
 template<class T>
 inline T SQR(const T a) {return a*a;}
 
@@ -87,8 +83,7 @@ void qrFree(qr_data qr);
 void basis0(double *f);
 void basis1(double *x, int lx, int dx, double *f);
 void basis2(double *x, int lx, int dx, double *f);
-//
-SEXP getListElement (SEXP list, const char *str);
+
 
 #ifdef  __cplusplus
 }

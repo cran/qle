@@ -10,12 +10,12 @@
 #ifndef KRIGING_H_
 #define KRIGING_H_
 
-#include "error.h"
 #include "covariance.h"
 
 /** typedefs */
 typedef enum { MEAN = 0, KRIG = 1} var_type;
 typedef enum { UNKNOWN = -1, DUAL = 0, VARIANCE = 1, BOTH = 2} krig_type;
+typedef enum { COPY_ZERO = 0, COPY_ONE = 1, COPY_MOD = 2, COPY_TRACE = 3} value_type;
 
 typedef struct krig_result_s {
   double *mean,
@@ -76,7 +76,7 @@ typedef struct krig_model_s {
   int lx,      /* amount of sampled points */
 	  dx;      /* dimension */
 
-  Rboolean cpy;	 /* if 'data' should be  copied */
+  value_type cpy;	   /* if 'data' should be  copied */
   krig_type krigtype;
 
   double *Xmat,	 /* design (always only pointer) */
@@ -95,7 +95,7 @@ typedef struct krig_model_s {
   cov_model cov;
 
   krig_model_s(SEXP _R_cov, double *_Xmat, double *_data,
-		  int _lx, int _dx, krig_type _type,  Rboolean _cpy = TRUE 	/* copy _data */ ) :
+		  int _lx, int _dx, krig_type _type,  value_type _cpy = COPY_ONE 	/* copy _data */ ) :
 	 lx(_lx), dx(_dx), cpy(_cpy), krigtype(_type), Xmat(_Xmat),
 	 data(0),Fmat(0),Cmat(0),Cinv(0),X1mat(0),Qmat(0),dw(0),f0(0),s0(0),trend(0),fddim(0),
 	 cov(_R_cov)
@@ -140,14 +140,14 @@ typedef struct glkrig_models_s
       dx,         /* columns, dimension of sample points */
       nCov;
 
-  Rboolean cpy;
+  value_type cpy;
   krig_type krigType;
   int info;
 
   krig_model *km;
   krig_result krigr[2];   /* working storage kriging: 0: default, 1: temporary */
 
-  glkrig_models_s(SEXP _R_covList, SEXP _R_Xmat, SEXP _R_data, SEXP R_krigType, int idx = 0, Rboolean _cpy = TRUE) :
+  glkrig_models_s(SEXP _R_covList, SEXP _R_Xmat, SEXP _R_data, SEXP R_krigType, int idx = 0, value_type _cpy = COPY_ONE) :
 	  Xmat(0), lx(0), dx(0), nCov(0), cpy(_cpy), info(0)
   {
 	  int *dim = GET_DIMS(_R_Xmat);
@@ -200,7 +200,7 @@ typedef struct glkrig_models_s
   }
 
   glkrig_models_s(SEXP _R_covList, double *_Xmat, double **_data, int _lx, int _dx,
-		  	  	  	 krig_type _krigType, int idx = 0, Rboolean _cpy = TRUE) :
+		  	  	  	 krig_type _krigType, int idx = 0, value_type _cpy = COPY_ONE) :
 		 Xmat(0), lx(_lx), dx(_dx), nCov(LENGTH(_R_covList)), cpy(_cpy), krigType(_krigType), info(0)
   {
 
@@ -386,7 +386,7 @@ typedef struct ql_model_s {
 	int dx,dxdx,lx,nCov,nCov2,info;
 
 	// R_qsd, R_qlopts, R_Vmat, R_cm, (Rboolean) type
-	ql_model_s(SEXP R_qsd, SEXP R_qlopts, SEXP R_Xmat, SEXP R_Vmat, SEXP R_cm, Rboolean _cpy) :
+	ql_model_s(SEXP R_qsd, SEXP R_qlopts, SEXP R_Xmat, SEXP R_Vmat, SEXP R_cm, value_type _cpy) :
 			glkm(NULL), varkm(NULL), cvmod(NULL), qld(NULL),
 			qimat(0), score(0), jac(0), qiobs(0), lower(0), upper(0), info(0)
 	{

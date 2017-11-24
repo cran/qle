@@ -11,9 +11,8 @@
 #ifndef COVARIANCE_H_
 #define COVARIANCE_H_
 
-#include <R.h>
-#include <Rmath.h>
-#include <Rdefines.h>
+#include "error.h"
+#include "auxil.h"
 
 struct cov_model_s;
 

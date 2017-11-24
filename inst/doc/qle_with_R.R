@@ -218,7 +218,7 @@ rbind("Var"=c("test"=attr(Stest,"aiqm"),"study"=qle.var[2]),
 
 
 ###################################################
-### code chunk number 20: qle_with_R.Rnw:1454-1462
+### code chunk number 20: qle_with_R.Rnw:1453-1461
 ###################################################
 set.seed(123)
 # setting the number of cores>1
@@ -231,14 +231,14 @@ simfunc <- function(pars) {
 
 
 ###################################################
-### code chunk number 21: qle_with_R.Rnw:1467-1469
+### code chunk number 21: qle_with_R.Rnw:1466-1468
 ###################################################
 lb <- c("mu"=0.5,"sigma"=0.1)
 ub <- c("mu"=8.0,"sigma"=5.0)
 
 
 ###################################################
-### code chunk number 22: qle_with_R.Rnw:1475-1478
+### code chunk number 22: qle_with_R.Rnw:1474-1477
 ###################################################
 sim <- simQLdata(sim=simfunc,
            nsim=10,N=8,lb=lb,ub=ub,
@@ -246,26 +246,26 @@ sim <- simQLdata(sim=simfunc,
 
 
 ###################################################
-### code chunk number 23: qle_with_R.Rnw:1484-1485
+### code chunk number 23: qle_with_R.Rnw:1483-1484
 ###################################################
 obs <- structure(c("T1"=2,"T2"=1),class="simQL")
 
 
 ###################################################
-### code chunk number 24: qle_with_R.Rnw:1488-1489
+### code chunk number 24: qle_with_R.Rnw:1487-1488
 ###################################################
 qsd <- getQLmodel(sim,lb,ub,obs,var.type="wcholMean")
 
 
 ###################################################
-### code chunk number 25: qle_with_R.Rnw:1493-1495
+### code chunk number 25: qle_with_R.Rnw:1492-1494
 ###################################################
 QS <- qscoring(qsd, x0=c("mu"=5,"sigma"=3.0), verbose=TRUE)
 print(QS)
 
 
 ###################################################
-### code chunk number 26: qle_with_R.Rnw:1503-1510
+### code chunk number 26: qle_with_R.Rnw:1502-1509
 ###################################################
 OPT <- qle(qsd,
         simfunc,		
@@ -277,7 +277,7 @@ print(OPT)
 
 
 ###################################################
-### code chunk number 27: qle_with_R.Rnw:1514-1556
+### code chunk number 27: qle_with_R.Rnw:1513-1555
 ###################################################
 op <- par(mfrow=c(1, 2), mar=c(5.1, 4.1, 1.1, 1.1),
 		oma=c(5,4,1,1),xaxs='i', yaxs='i',
@@ -324,13 +324,13 @@ par(op)
 
 
 ###################################################
-### code chunk number 28: qle_with_R.Rnw:1565-1566
+### code chunk number 28: qle_with_R.Rnw:1564-1565
 ###################################################
 checkMultRoot(OPT,verbose=TRUE)
 
 
 ###################################################
-### code chunk number 29: qle_with_R.Rnw:1574-1577
+### code chunk number 29: qle_with_R.Rnw:1573-1576
 ###################################################
 obs0 <- simQLdata(simfunc,X=OPT$par,nsim=1000,mode="matrix")[[1]]
 var(obs0)
@@ -338,7 +338,7 @@ attr(OPT$final,"Sigma")
 
 
 ###################################################
-### code chunk number 30: qle_with_R.Rnw:1580-1583
+### code chunk number 30: qle_with_R.Rnw:1579-1582
 ###################################################
 Stest <- qleTest(OPT,method=c("qscoring","bobyqa"),
 		   sim=simfunc,nsim=1000)
@@ -346,7 +346,7 @@ Stest
 
 
 ###################################################
-### code chunk number 31: qle_with_R.Rnw:1607-1613
+### code chunk number 31: qle_with_R.Rnw:1606-1612
 ###################################################
 data(matclust)
 OPT <- matclust$OPT
@@ -357,27 +357,27 @@ library(spatstat)
 
 
 ###################################################
-### code chunk number 32: qle_with_R.Rnw:1617-1619
+### code chunk number 32: qle_with_R.Rnw:1616-1618
 ###################################################
 data(redwood)
 fitMat <- kppm(redwood, ~1, "MatClust")
 
 
 ###################################################
-### code chunk number 33: qle_with_R.Rnw:1622-1623
+### code chunk number 33: qle_with_R.Rnw:1621-1622
 ###################################################
 fitMat$modelpar
 
 
 ###################################################
-### code chunk number 34: qle_with_R.Rnw:1625-1627 (eval = FALSE)
+### code chunk number 34: qle_with_R.Rnw:1624-1626 (eval = FALSE)
 ###################################################
 ## RNGkind("L'Ecuyer-CMRG")
 ## set.seed(297)
 
 
 ###################################################
-### code chunk number 35: qle_with_R.Rnw:1631-1640
+### code chunk number 35: qle_with_R.Rnw:1630-1639
 ###################################################
 simStat <- function(X,cond){
  x <- Kest(X,r=cond$rr,correction="best")
@@ -391,7 +391,7 @@ simStat <- function(X,cond){
 
 
 ###################################################
-### code chunk number 36: qle_with_R.Rnw:1644-1648
+### code chunk number 36: qle_with_R.Rnw:1643-1647
 ###################################################
 simClust <- function(theta,cond){
  X <- rMatClust(theta["kappa"],theta["R"],theta["mu"],win=cond$win)	
@@ -400,7 +400,7 @@ simClust <- function(theta,cond){
 
 
 ###################################################
-### code chunk number 37: qle_with_R.Rnw:1653-1657
+### code chunk number 37: qle_with_R.Rnw:1652-1656
 ###################################################
 nsim <- 50
 Nsample <- 12
@@ -409,14 +409,14 @@ cond <- list(win=owin(c(0, 2),c(0, 2)),
 
 
 ###################################################
-### code chunk number 38: qle_with_R.Rnw:1660-1662
+### code chunk number 38: qle_with_R.Rnw:1659-1661
 ###################################################
 lb <- c("kappa"=20,"R"=0.01,"mu"=1)
 ub <- c("kappa"=30,"R"=0.25,"mu"=5)	 
 
 
 ###################################################
-### code chunk number 39: qle_with_R.Rnw:1666-1670 (eval = FALSE)
+### code chunk number 39: qle_with_R.Rnw:1665-1669 (eval = FALSE)
 ###################################################
 ## cl <- makeCluster(8)
 ## clusterSetRNGStream(cl)
@@ -425,57 +425,57 @@ ub <- c("kappa"=30,"R"=0.25,"mu"=5)
 
 
 ###################################################
-### code chunk number 40: qle_with_R.Rnw:1674-1675 (eval = FALSE)
+### code chunk number 40: qle_with_R.Rnw:1673-1674 (eval = FALSE)
 ###################################################
 ## obs0 <- simStat(redwood,cond)
 
 
 ###################################################
-### code chunk number 41: qle_with_R.Rnw:1678-1680 (eval = FALSE)
+### code chunk number 41: qle_with_R.Rnw:1677-1679 (eval = FALSE)
 ###################################################
 ## sim <- simQLdata(sim=simClust,cond=cond,nsim=nsim,
 ##           method="randomLHS",lb=lb,ub=ub,N=Nsample,cl=cl)
 
 
 ###################################################
-### code chunk number 42: qle_with_R.Rnw:1683-1685 (eval = FALSE)
+### code chunk number 42: qle_with_R.Rnw:1682-1684 (eval = FALSE)
 ###################################################
 ## qsd <- getQLmodel(sim,lb,ub,obs0,criterion="qle",
 ##          var.type="kriging",verbose=TRUE)
 
 
 ###################################################
-### code chunk number 43: qle_with_R.Rnw:1695-1696 (eval = FALSE)
+### code chunk number 43: qle_with_R.Rnw:1694-1695 (eval = FALSE)
 ###################################################
 ## cvm <- prefitCV(qsd, reduce=FALSE, verbose=TRUE)
 
 
 ###################################################
-### code chunk number 44: qle_with_R.Rnw:1702-1703
+### code chunk number 44: qle_with_R.Rnw:1701-1702
 ###################################################
 crossValTx(qsd, cvm, type = "acve")
 
 
 ###################################################
-### code chunk number 45: qle_with_R.Rnw:1708-1709
+### code chunk number 45: qle_with_R.Rnw:1707-1708
 ###################################################
 crossValTx(qsd, cvm, type = "mse")
 
 
 ###################################################
-### code chunk number 46: qle_with_R.Rnw:1720-1721
+### code chunk number 46: qle_with_R.Rnw:1719-1720
 ###################################################
 crossValTx(qsd, cvm, type = "ascve")
 
 
 ###################################################
-### code chunk number 47: qle_with_R.Rnw:1731-1732
+### code chunk number 47: qle_with_R.Rnw:1730-1731
 ###################################################
 attr(cvm,"type") <- "max"
 
 
 ###################################################
-### code chunk number 48: qle_with_R.Rnw:1736-1739
+### code chunk number 48: qle_with_R.Rnw:1735-1738
 ###################################################
 x0 <- c("kappa"=24,"R"=0.08,"mu"=2.5)
 searchMinimizer(x0,qsd,info=TRUE,
@@ -483,7 +483,7 @@ searchMinimizer(x0,qsd,info=TRUE,
 
 
 ###################################################
-### code chunk number 49: qle_with_R.Rnw:1742-1745
+### code chunk number 49: qle_with_R.Rnw:1741-1744
 ###################################################
 qscoring(qsd,x0,
   opts=list("ftol_rel"=1e-6,"slope_tol"=1e-4),
@@ -491,7 +491,7 @@ qscoring(qsd,x0,
 
 
 ###################################################
-### code chunk number 50: qle_with_R.Rnw:1760-1772 (eval = FALSE)
+### code chunk number 50: qle_with_R.Rnw:1759-1771 (eval = FALSE)
 ###################################################
 ## OPT <- qle(qsd, simClust, cond=cond,  
 ## 		global.opts = list("maxiter"=10,
@@ -508,32 +508,32 @@ qscoring(qsd,x0,
 
 
 ###################################################
-### code chunk number 51: qle_with_R.Rnw:1775-1776
+### code chunk number 51: qle_with_R.Rnw:1774-1775
 ###################################################
 print(OPT)
 
 
 ###################################################
-### code chunk number 52: qle_with_R.Rnw:1779-1780
+### code chunk number 52: qle_with_R.Rnw:1778-1779
 ###################################################
 attr(OPT,"optInfo")
 
 
 ###################################################
-### code chunk number 53: qle_with_R.Rnw:1785-1786
+### code chunk number 53: qle_with_R.Rnw:1784-1785
 ###################################################
 OPT$final
 
 
 ###################################################
-### code chunk number 54: qle_with_R.Rnw:1790-1792
+### code chunk number 54: qle_with_R.Rnw:1789-1791
 ###################################################
 S0 <- searchMinimizer(OPT$par,OPT$qsd,
        method="bobyqa",cvm=OPT$cvm,verbose=TRUE)
 
 
 ###################################################
-### code chunk number 55: qle_with_R.Rnw:1797-1800
+### code chunk number 55: qle_with_R.Rnw:1796-1799
 ###################################################
 QS <- qscoring(OPT$qsd,OPT$par,
        opts=list("slope_tol"=1e-4,"score_tol"=1e-3),
@@ -541,20 +541,20 @@ QS <- qscoring(OPT$qsd,OPT$par,
 
 
 ###################################################
-### code chunk number 56: qle_with_R.Rnw:1804-1806
+### code chunk number 56: qle_with_R.Rnw:1803-1805
 ###################################################
 par <- rbind("QS"=QS$par,"S0"=S0$par)
 checkMultRoot(OPT,par=par)
 
 
 ###################################################
-### code chunk number 57: qle_with_R.Rnw:1809-1810
+### code chunk number 57: qle_with_R.Rnw:1808-1809
 ###################################################
 OPT$par
 
 
 ###################################################
-### code chunk number 58: qle_with_R.Rnw:1815-1818 (eval = FALSE)
+### code chunk number 58: qle_with_R.Rnw:1814-1817 (eval = FALSE)
 ###################################################
 ## Stest <- qleTest(OPT,sim=simClust,cond=cond, 
 ##   nsim=1000,method=c("qscoring","bobyqa","direct"),  
@@ -562,31 +562,31 @@ OPT$par
 
 
 ###################################################
-### code chunk number 59: qle_with_R.Rnw:1820-1821
+### code chunk number 59: qle_with_R.Rnw:1819-1820
 ###################################################
 print(Stest)
 
 
 ###################################################
-### code chunk number 60: qle_with_R.Rnw:1824-1825 (eval = FALSE)
+### code chunk number 60: qle_with_R.Rnw:1823-1824 (eval = FALSE)
 ###################################################
 ## stopCluster(cl)
 
 
 ###################################################
-### code chunk number 61: qle_with_R.Rnw:1834-1835
+### code chunk number 61: qle_with_R.Rnw:1833-1834
 ###################################################
 diag(attr(Stest,"qi"))^0.5
 
 
 ###################################################
-### code chunk number 62: qle_with_R.Rnw:1838-1839
+### code chunk number 62: qle_with_R.Rnw:1837-1838
 ###################################################
 sqrt(diag(attr(Stest,"msem")))
 
 
 ###################################################
-### code chunk number 63: qle_with_R.Rnw:1843-1844
+### code chunk number 63: qle_with_R.Rnw:1842-1843
 ###################################################
 attr(Stest,"msem")
 

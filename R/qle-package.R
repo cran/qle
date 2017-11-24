@@ -32,7 +32,7 @@
 #' 
 #' @references  
 #'  \enumerate{
-#'   \item Baaske, M., Ballani, F., v.d. Boogaart,K.-G. (2014). A quasi-likelihood
+#'   \item Baaske, M., Ballani, F., v.d. Boogaart,K.G. (2014). A quasi-likelihood
 #'				 approach to parameter estimation for simulatable statistical models.
 #'	 			 \emph{Image Analysis & Stereology}, 33(2):107-119.  
 #' 	 \item Chiles, J. P., Delfiner, P. (1999). Geostatistics: modelling spatial uncertainty.

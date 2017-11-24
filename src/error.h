@@ -10,20 +10,19 @@
  *              objects to read from R and trigger them as you want
  */
 
-#define USE_R
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
 #include "basics.h"
 
+#include <R.h>
+#include <Rdefines.h>
+
 #define NO_ERROR 0
 #define NO_WARNING 0
 
-#define MAX_ERRORS 100
-#define MAX_WARNINGS 100
-#define maxErrorStr 1000
+#define maxErrorStr 100
 #define nErrorLocations 100
-#define nWarningLocations 100
 
 #define ERROR_NUM_MIN 100
 #define ERROR_NUM_MAX 500
@@ -34,24 +33,25 @@
 
 #define PRINT_MSG(s)  Rprintf("[%s:%u]%s\n", __FILE__, (unsigned)__LINE__, s)
 
-extern int  PL;
-extern char C_MSG_BUFFER[1000];
-extern char R_MSG_BUFFER[1000];
+#define PRINT Rprintf
+#define PRINTF Rprintf
 
-extern char ERROR_STRING[maxErrorStr];
+extern int  PL;
+extern char C_MSG_BUFFER[100];
+extern char R_MSG_BUFFER[100];
 extern char ERROR_LOC[nErrorLocations];
 
 
 #define LOG_ERROR(X, INFO, MSG) { \
   errorMSG(X, C_MSG_BUFFER); \
-  std::sprintf(R_MSG_BUFFER, "Error message: `%s', error code %d: %s",C_MSG_BUFFER, X,MSG); \
-  setError(X,R_MSG_BUFFER,__LINE__, __FILE__, INFO); \
+  std::sprintf(R_MSG_BUFFER, "Error: `%s', error code %d: %s", C_MSG_BUFFER, X, MSG); \
+  PRINT(" %s ", R_MSG_BUFFER); \
 }
 
 #define LOG_WARNING(X, INFO, MSG) { \
   warningMSG(X, C_MSG_BUFFER); \
-  std::sprintf(R_MSG_BUFFER, "Warning message: `%s', warning code %d: %s",C_MSG_BUFFER, X, MSG); \
-  setWarning(X,R_MSG_BUFFER,__LINE__, __FILE__, INFO); \
+  std::sprintf(R_MSG_BUFFER, "Warning: `%s', warning code %d: %s", C_MSG_BUFFER, X, MSG); \
+  PRINT(" %s ", R_MSG_BUFFER); \
 }
 
 
@@ -99,15 +99,6 @@ extern char ERROR_LOC[nErrorLocations];
   error(_(R_MSG_BUFFER)); \
 }
 
-
-#ifdef USE_R
-#else
-  #include <iostream>
-  #include <sstream>
-  #include <stdio.h>
-#endif
-
-
 typedef enum  {
         SYSTEM_ERROR = 1,
         ALLOC_ERROR = 2,
@@ -125,39 +116,6 @@ typedef enum  {
 
 } error_type;
 
-typedef enum  warning_type_s {
-      GENERIC_WARNING = 1,
-      FINAL_WARNING = 1000
-} warning_type;
-
-
-typedef struct errorStatus_s {
-  char msg[maxErrorStr];       /* some additional message */
-  char file[nErrorLocations]; /* the file */
-
-  int id,       /* error id see error_type */
-      code,     /* specific error code  */
-      numErr,   /* current error number */
-      line,     /* the line */
-      isError;  /* error = 1, warning = 0 */
-
-} errorStatus;
-
-typedef struct warningStatus_s {
-  char msg[maxErrorStr];       /* some additional message */
-  char file[nErrorLocations]; /* the file */
-
-   int id,              /* error id see error_type */
-      code,             /* specific error code  */
-     numWrr,            /* current error number */
-       line,            /* the line */
-       isWarning;       /* error = 1, warning = 0 */
-
-} warningStatus;
-
-typedef warningStatus *warning_queue[MAX_WARNINGS];
-typedef errorStatus *error_queue[MAX_ERRORS];
-
 template<class Type>
 void printArray(const char fmt[], const Type *v, int *lx) {
   Rprintf("[");
@@ -170,14 +128,7 @@ void printArray(const char fmt[], const Type *v, int *lx) {
 /////////////////////// Error /////////////////////////////////////////////////////////////////////////////////////
 extern void errorMSG(int, char*);
 extern void warningMSG(int , char *, char* );
-extern void setError(int, const char *, int ,const char *, int);
-extern void setWarning(int , const char* , int , const char* , int);
 extern void printMSG(int, const char *, int, const char * );
-
-extern void cleanErrors();
-extern void incWarning();
-extern void incError();
-extern void cleanWarnings();
 
 void printMatrix(const char ch[], const double *mat, int *irows, int *icols);
 void printVector(const char ch[], const double *vec, int *lx);
@@ -198,5 +149,34 @@ void print_R_vector( SEXP v, const std::string& vector_name);
 #define DEBUG_PRINT_VECTOR_R( c , cstr ) { print_R_vector( c , cstr ); }
 #define DEBUG_DUMP_VAR(x,fmt) { PRINT("%s:%u: %s=\n" fmt, __FILE__, (unsigned)__LINE__, #x, x); }
 #define DEBUG_PRINT_MATRIX_R( C , cstr) { print_R_matrix( C , cstr); }
+
+/////////////////// Some R convenience macros ////////////////////////////////////
+
+#define RMATRIX(m,i,j) (REAL(m)[ INTEGER(GET_DIM(m))[0]*(j)+(i) ])
+#define GET_DIMS(A) INTEGER(coerceVector (getAttrib( (A), (R_DimSymbol) ) , INTSXP) )
+
+#define SET_CLASS_NAME(RObject,ClassName) {            \
+  SEXP RClass;                                         \
+  PROTECT(RClass=allocVector(STRSXP,1));               \
+  SET_STRING_ELT( (RClass) ,0, mkChar( (ClassName) ));  \
+  classgets( (RObject), (RClass) );                    \
+  UNPROTECT(1);                                        \
+}
+
+// Dimension names of a matrix, UNPROTECT later
+#define SET_DIMNAMES_MATRIX(RObject,RNamedObject){ 		\
+  SEXP R_names = getAttrib(RNamedObject,R_NamesSymbol); \
+  SET_VECTOR_ELT(RObject, 0, R_names);					\
+  SET_VECTOR_ELT(RObject, 1, R_names);					\
+}
+
+// Dimension names of a matrix, UNPROTECT later
+#define SET_DIMNAMES_MATRIX2(RObject,RNamedObject0,RNamedObject1){ 		\
+  SEXP R_names0 = getAttrib(RNamedObject0,R_NamesSymbol); 				\
+  SEXP R_names1 = getAttrib(RNamedObject1,R_NamesSymbol); 				\
+  SET_VECTOR_ELT(RObject, 0, R_names0);									\
+  SET_VECTOR_ELT(RObject, 1, R_names1);									\
+}
+
 
 #endif /* DEBUG_H */

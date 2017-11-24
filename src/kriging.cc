@@ -14,7 +14,6 @@
 #define FD_EPS 1e-4
 #define KRIGE_TOLERANCE 1e-10
 
-#include "auxil.h"
 #include "kriging.h"
 
 static int ONE_ELEMENT = 1;
@@ -161,7 +160,7 @@ SEXP estimateJacobian(SEXP R_Xmat, SEXP R_data, SEXP R_points, SEXP R_covT, SEXP
 	   dx = dimX[1],
    	   npoints = LENGTH(R_points);
 
-   glkrig_models glkm(R_covT,R_Xmat,R_data,R_krigtype,FALSE);
+   glkrig_models glkm(R_covT,R_Xmat,R_data,R_krigtype,COPY_ZERO);
 
    SEXP R_names, R_jacobians, R_jac_element, R_jac;
    PROTECT(R_jacobians = allocVector(VECSXP,npoints));
@@ -227,7 +226,7 @@ SEXP kriging(SEXP R_Xmat, SEXP R_data, SEXP R_points, SEXP R_covList, SEXP R_kri
        ERR("expected matrix of sample points.")
 
      /* init all kriging models */
-     glkrig_models glkm(R_covList,R_Xmat,R_data,R_krigType,FALSE);
+     glkrig_models glkm(R_covList,R_Xmat,R_data,R_krigType,COPY_ZERO);
 
      SEXP R_mean, R_sigma2, R_weights,
 	 	  R_weights_tmp, R_tmp, R_retlist;
@@ -379,7 +378,7 @@ SEXP initQL(SEXP R_qsd, SEXP R_qlopts, SEXP R_X, SEXP R_Vmat, SEXP R_cm)
 	 if(!finalizeQL())
 	   ERR("Could not free memory of `qlm_model`.")
   }
-  if( (qlm_global = new(std::nothrow) ql_model_s(R_qsd, R_qlopts, R_X, R_Vmat, R_cm, TRUE)) == NULL)
+  if( (qlm_global = new(std::nothrow) ql_model_s(R_qsd, R_qlopts, R_X, R_Vmat, R_cm, COPY_ONE)) == NULL)
   	MEM_ERR(1,ql_model_s);
 
   return ScalarLogical(TRUE);
@@ -478,10 +477,10 @@ void setVmatAttrib(ql_model qlm, SEXP R_VmatNames, SEXP R_ans) {
 SEXP mahalanobis(SEXP R_points, SEXP R_qsd, SEXP R_qlopts, SEXP R_X, SEXP R_Vmat, SEXP R_cm, SEXP R_qdValue)
 {
 	  int i = 0, info = 0,
-		 np = LENGTH(R_points),
-	   type = asInteger(AS_INTEGER(R_qdValue));
+		 np = LENGTH(R_points);
+	  value_type type = (value_type) asInteger(AS_INTEGER(R_qdValue));
 
-	  ql_model_t qlm(R_qsd, R_qlopts, R_X, R_Vmat, R_cm, (Rboolean) type);
+	  ql_model_t qlm(R_qsd, R_qlopts, R_X, R_Vmat, R_cm, type);
 
 	  GLKM glkm = qlm.glkm;
 	  ql_data qld = qlm.qld;
@@ -509,10 +508,9 @@ SEXP mahalanobis(SEXP R_points, SEXP R_qsd, SEXP R_qlopts, SEXP R_X, SEXP R_Vmat
 			  PROTECT(R_ret = allocVector(REALSXP,np));
 			  double *fx = REAL(R_ret);
 
-			  if(type == 3) {
-				  for(i=0; i < np; ++i) {
+			  if(type == COPY_TRACE) {
+				  for(i=0; i < np; ++i)
 					fx[i] = qlm.intern_mahalVarTrace(REAL(AS_NUMERIC(VECTOR_ELT(R_points,i))));
-				  }
 			  } else {
  				  for(i=0; i < np; ++i)
 			        fx[i] = qlm.intern_mahalValue(REAL(AS_NUMERIC(VECTOR_ELT(R_points,i))));
@@ -635,12 +633,10 @@ SEXP mahalanobis(SEXP R_points, SEXP R_qsd, SEXP R_qlopts, SEXP R_X, SEXP R_Vmat
 			  PROTECT(R_ret = allocVector(REALSXP,np));
   			  double *f = REAL(R_ret);
 
-  			  if(type==3) {
+  			  if(type == COPY_TRACE) {
 			    for(i=0; i < np; ++i)
-				   f[i] = qlm.intern_qfTrace(REAL(AS_NUMERIC(VECTOR_ELT(R_points,i))));
-
+				  f[i] = qlm.intern_qfTrace(REAL(AS_NUMERIC(VECTOR_ELT(R_points,i))));
   			  } else {
-
   				for(i=0;i<np;i++)
   				  f[i] = qlm.intern_mahalValue_theta(REAL(AS_NUMERIC(VECTOR_ELT(R_points,i))));
   			  }
@@ -874,27 +870,23 @@ ql_model_s::intern_mahalVarTrace(double *x) {
 
 SEXP quasiDeviance(SEXP R_points, SEXP R_qsd, SEXP R_qlopts, SEXP R_X, SEXP R_Vmat, SEXP R_cm, SEXP R_qdValue)
 {
-      int i = 0,
-    	  np = LENGTH(R_points),
-        type = asInteger(AS_INTEGER(R_qdValue));
+      int i = 0, np = LENGTH(R_points);
+      value_type type = (value_type)asInteger(AS_INTEGER(R_qdValue));
 
-      ql_model_t qlm(R_qsd, R_qlopts, R_X, R_Vmat, R_cm, (Rboolean) type);
+      ql_model_t qlm(R_qsd, R_qlopts, R_X, R_Vmat, R_cm, type);
 
       if(type) {
     	  SEXP Rval;
     	  PROTECT(Rval = allocVector(REALSXP,np));
           double *fx = REAL(Rval);
 
-          if(type > 1 && qlm.glkm->krigType) {
-        	 switch(type) {
-				  case 2:
-					for(;i < np; ++i)
-					   fx[i] = qlm.intern_qfVarStat(REAL(AS_NUMERIC(VECTOR_ELT(R_points,i))));
-					break;
-				  case 3:
-					for(;i < np; ++i)
-					   fx[i] = qlm.intern_qfTrace(REAL(AS_NUMERIC(VECTOR_ELT(R_points,i))));
-				  break;
+          if(type > COPY_ONE && qlm.glkm->krigType) {
+        	 if(type == COPY_MOD){
+				  for(;i < np; ++i)
+				   fx[i] = qlm.intern_qfVarStat(REAL(AS_NUMERIC(VECTOR_ELT(R_points,i))));
+        	 } else {
+			   for(;i < np; ++i)
+				 fx[i] = qlm.intern_qfTrace(REAL(AS_NUMERIC(VECTOR_ELT(R_points,i))));
 			}
   		  } else {
   			for(; i < np; ++i)
@@ -1062,7 +1054,7 @@ ql_model_s::intern_qfTrace(double *x) {
 	  XERR(info,"Computation of variance of quasi-score failed.");
 	  return R_NaN;
 	}
-	/* this actually computes the variance of quasi-score */
+	/* this actually computes the (average) trace of the variance of quasi-score */
 	intern_varScore(qimat);
 	double sum=0;
 	for(; i < dx; ++i)
@@ -1275,7 +1267,7 @@ krig_model_s::setup(double *_data)
 
 	  // init matrices
 	  int info=0;
-	  if(krigtype==VARIANCE) {
+	  if(krigtype == VARIANCE) {
 		 MEMCPY(Cinv,Cmat,lx*lx);
 		 invMatrix(Cinv,lx,&info);
 		 if(info)

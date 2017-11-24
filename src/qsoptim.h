@@ -10,15 +10,7 @@
 #ifndef OPTIMIZE_H_
 #define OPTIMIZE_H_
 
-#include <R.h>
-#include <Rmath.h>
-#include <Rdefines.h>
-#include <R_ext/Applic.h>
-#include <R_ext/Constants.h>
-
-#include "auxil.h"
 #include "kriging.h"
-
 
 typedef enum {
 	 QFS_ERROR = -10, 				/* generic failure code */
@@ -74,7 +66,10 @@ typedef struct qfs_options_s {
 extern "C" {
 #endif
 
-/** Quasi-Scoring iteration */
+SEXP emptyErrorCache();
+SEXP emptyWarningCache();
+
+// Quasi-Scoring iteration
 SEXP QSopt(SEXP R_start, SEXP R_qsd, SEXP R_qlopts, SEXP R_X, SEXP R_Vmat, SEXP R_cm, SEXP R_opt);
 
 #ifdef  __cplusplus

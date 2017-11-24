@@ -5,8 +5,9 @@
  * @author: M. Baaske
  */
 
-#include "qloptr.h"
 #include "qsoptim.h"
+#include <R_ext/Lapack.h>
+#include <R_ext/Rdynload.h>
 
 /* R Interface functions  */
 #define CALLDEF(name, n)  {#name, (DL_FUNC) &name, (n)}
@@ -43,6 +44,9 @@ static R_CallMethodDef CallEntries[] = {
     {NULL, NULL, 0}
 };
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 void R_init_qle(DllInfo *info)
 {
@@ -56,6 +60,11 @@ void R_init_qle(DllInfo *info)
   /// Release resources.
 }
 */
+
+
+#ifdef  __cplusplus
+}
+#endif
 
 
 

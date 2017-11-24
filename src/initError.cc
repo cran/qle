@@ -12,29 +12,18 @@
 
 int PL = 1;
 
-int maxErrors = MAX_ERRORS, lastError = 0;
-int maxWarnings = MAX_WARNINGS, lastWarning = 0;
-
-char R_MSG_BUFFER[1000]="";
-char C_MSG_BUFFER[1000]="";
-char ERROR_STRING[maxErrorStr]="";
+char R_MSG_BUFFER[100]="";
+char C_MSG_BUFFER[100]="";
 char ERROR_LOC[nErrorLocations]="";
 
-
-/* error and warnings containers*/
-error_queue errContainer;
-warning_queue wrrContainer;
-
 /* get error message from id*/
-void errorMSG(int err, char* m) {
+void errorMSG(int errId, char* m) {
   if (PL > 0) {
       PRINTF("\n\n #### C ERROR MSG block #### \n");
-      PRINTF("error code %d\n", err);
+      PRINTF("error code %d\n", errId);
   }
 
-  if (err >= ERROR_NUM_MIN && err <= ERROR_NUM_MAX) err = ERROR_NUM_MIN;
-
-  switch (err) {
+  switch (errId) {
       case NO_ERROR : return;
       case NaN_ERROR: std::strcpy(m,"NaNs produced"); break;
       case LAPACK_ERROR: std::strcpy(m,"Lapack function returned error code"); break;
@@ -43,163 +32,29 @@ void errorMSG(int err, char* m) {
       case LAPACK_FACTORIZE_ERROR:  std::strcpy(m,"Error in routine dpotrf!"); break;
       case LAPACK_SOLVE_ERROR:  std::strcpy(m,"Error in routine dpotrs!"); break;
       case LAPACK_INVERSION_ERROR:  std::strcpy(m,"Error in routine invMatrix!"); break;
-      default:
-    	 std::strcpy(m,"default error: ");
-         break;
+      default: std::strcpy(m,"unknown error code: "); break;
   }
 }
 
 void warningMSG(int wrr, char* m) {
   switch(wrr) {
-  case NO_WARNING: return;
-  case GENERIC_WARNING: std::strcpy(m,"Generic warning"); break;
-  default:
-	  std::strcpy(m,"default warning: ");
-    break;
+   case NO_WARNING: return;
+   default: std::strcpy(m,"generic warning code: ");  break;
   }
 }
 
 void printMSG(int err, const char *msg , int line, const char *file){
    char MSG[maxErrorStr];
-   errorMSG(err, ERROR_STRING); /* errors and warnings together */
+   errorMSG(err, C_MSG_BUFFER); /* errors and warnings together */
+
    if(err < WARNING_NUM_MIN)
      std::sprintf(ERROR_LOC, "Error in file %s at line %d. \n ", file, line);
    else
 	 std::sprintf(ERROR_LOC, "Warning in file %s at line %d. \n ", file, line);
-   std::sprintf(MSG, "%s\n  ... %s\n ... %s\n", ERROR_LOC, ERROR_STRING, msg);
+
+   std::sprintf(MSG, "%s\n  ... %s\n ... %s\n", ERROR_LOC, C_MSG_BUFFER, msg);
    PRINT(" %s ", MSG);
 }
-
-void incError() {
-   ++lastError;
-   if(lastError==MAX_ERRORS) {
-	   std::strcpy(ERROR_LOC,__FILE__);
-      cleanErrors();
-      ERR(" *** Error buffer overflow! *** ");
-   } else if(lastError>MAX_ERRORS/2) {
-	   std::strcpy(ERROR_LOC,__FILE__);
-     WRR(" *** Risk of error buffer overflow: too many errors/warnings ***.\n");
-   }
-}
-
-void incWarning() {
-   ++lastWarning;
-   if(lastWarning==MAX_WARNINGS) {
-	   std::strcpy(ERROR_LOC,__FILE__);
-      cleanWarnings();
-      ERR(" *** Warning buffer overflow! *** ");
-   } else if(lastWarning>MAX_WARNINGS/2) {
-	   std::strcpy(ERROR_LOC,__FILE__);
-     WRR(" *** Risk of warning buffer overflow: too many errors/warnings ***.\n");
-   }
-}
-
-void setError(int id, const char* msg, int line, const char* file, int code )
-{
-    errContainer[lastError] = Calloc(1, errorStatus_s);
-    errContainer[lastError]->id = id;
-    errContainer[lastError]->line = line;
-    errContainer[lastError]->isError = 1;
-    errContainer[lastError]->numErr = lastError;
-    errContainer[lastError]->code = code;
-
-    strcpy(errContainer[lastError]->file,file);
-    strcpy(errContainer[lastError]->msg,msg);
-
-    incError();
-
-}
-
-void setWarning(int id, const char* msg, int line, const char* file, int code)
-{
-    wrrContainer[lastWarning] = Calloc(1, warningStatus_s);
-    wrrContainer[lastWarning]->id = id;
-    wrrContainer[lastWarning]->line = line;
-    wrrContainer[lastWarning]->isWarning = 1;
-    wrrContainer[lastWarning]->numWrr = lastWarning;
-    wrrContainer[lastWarning]->code = code;
-
-    std::strcpy(wrrContainer[lastWarning]->file,file);
-    std::strcpy(wrrContainer[lastWarning]->msg,msg);
-    incWarning();
-
-}
-
-void cleanErrors() {
-  if(!lastError)
-     return;
-   while(lastError > 0) {
-	Free(errContainer[lastError-1]);
-	--lastError;
-   }
-}
-
-void cleanWarnings() {
-  if(!lastWarning)
-    return;
-  while(lastWarning > 0) {
-        Free(wrrContainer[lastWarning-1]);
-        --lastWarning;
-   }
-}
-
-SEXP emptyErrorCache() {
-  SEXP R_msg,R_list,R_cls;
-
-  char MSG[maxErrorStr];
-  errorStatus *err = NULL;
-
-  PROTECT(R_list = allocVector(VECSXP, lastError));
-  PROTECT(R_cls = allocVector(STRSXP, 1));
-
-  SET_STRING_ELT(R_cls, 0, mkChar("error"));
-  setAttrib(R_list, R_ClassSymbol, R_cls);
-
-  for(int j=0; j < lastError; j++) {
-    err = errContainer[j];
-    std::sprintf(MSG,"Error %d, code %d: %s in file `%s' at line %d",err->numErr,err->id,err->msg,err->file,err->line);
-    PROTECT(R_msg = allocVector(STRSXP, 1));
-    SET_STRING_ELT(R_msg, 0, mkChar(MSG));
-    SET_VECTOR_ELT(R_list, j, R_msg);
-    UNPROTECT(1);
-  }
-
-  if( (lastError>0) )
-     cleanErrors();
-
-  UNPROTECT(2);
-  return R_list;
-}
-
-
-SEXP emptyWarningCache() {
-  SEXP R_msg,R_list,R_cls;
-
-  char MSG[maxErrorStr];
-  warningStatus *wrr = NULL;
-
-  PROTECT(R_list = allocVector(VECSXP, lastWarning));
-  PROTECT(R_cls = allocVector(STRSXP, 1));
-
-  SET_STRING_ELT(R_cls, 0, mkChar("warning"));
-  setAttrib(R_list, R_ClassSymbol, R_cls);
-
-  for(int j=0; j < lastWarning; j++) {
-          wrr = wrrContainer[j];
-          std::sprintf(MSG,"Warning %d, code %d: %s in file `%s' at line %d",wrr->numWrr,wrr->id,wrr->msg,wrr->file,wrr->line);
-          PROTECT(R_msg = allocVector(STRSXP, 1));
-          SET_STRING_ELT(R_msg, 0, mkChar(MSG));
-          SET_VECTOR_ELT(R_list, j, R_msg);
-          UNPROTECT(1);
-  }
-
-  if(lastWarning > 0)
-     cleanWarnings();
-
-  UNPROTECT(2);
-  return R_list;
-}
-
 
 void printMatrix(const char ch[], const double *mat, int *irows, int *icols) {
 	int j, k, rows, cols;
@@ -216,8 +71,6 @@ void printMatrix(const char ch[], const double *mat, int *irows, int *icols) {
 	}
     PRINT("\n");
 }
-
-
 
 void printVector(const char ch[], const double *vec, int *lx) {
 	int j;

@@ -1435,8 +1435,7 @@ rbind("Var"=c("test"=attr(Stest,"aiqm"),"study"=qle.var[2]),
 	  "MSE"=c(as.vector(Stest$param["RMSE"]^2),qle.var[1]))
 @
 In general, the error estimation from testing is a rather ''pessimistic``
-approximation of the one derived from a simulation study, see Table
-\ref{tab:err}.
+approximation of the one derived from a simulation study.
 %
 \subsection{Estimating the parameters of a normal distribution}
 This example shows how to estimate the mean and standard deviation of a gaussian

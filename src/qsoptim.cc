@@ -8,9 +8,10 @@
  *
  */
 
-
-#include "error.h"
 #include "qsoptim.h"
+
+#include <R_ext/Applic.h>
+#include <R_ext/Constants.h>
 
 #define TOLFAILS 200
 
@@ -77,7 +78,7 @@ SEXP QSopt(SEXP R_start, SEXP R_qsd, SEXP R_qlopts, SEXP R_X, SEXP R_Vmat, SEXP 
     double *start = REAL(AS_NUMERIC(R_start));
     MEMCPY(xsol,start,xdim);
 
-    ql_model_t qlm(R_qsd, R_qlopts, R_X, R_Vmat, R_cm, FALSE);
+    ql_model_t qlm(R_qsd, R_qlopts, R_X, R_Vmat, R_cm, COPY_ZERO);
 
     /*! Set optimization options*/
     qfs_options_t qfs(&qlm,R_opt);
