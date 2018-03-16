@@ -21,7 +21,7 @@ multiSearch(x0 = NULL, qsd, ..., nstart = 10, optInfo = FALSE,
 
 \item{multi.start}{logical, \code{FALSE} (default), whether to perform a multistart local search always otherwise only if first local search did not converge}
 
-\item{cl}{cluster object, \code{NULL} (default), of class "\code{MPIcluster}", "\code{SOCKcluster}", "\code{cluster}"}
+\item{cl}{cluster object, \code{NULL} (default), of class \code{MPIcluster}, \code{SOCKcluster}, \code{cluster}}
 
 \item{pl}{print level, use \code{pl}>0 to print intermediate results}
 

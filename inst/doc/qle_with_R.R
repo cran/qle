@@ -53,7 +53,7 @@ qsd <- getQLmodel(sim, lb, ub, obs=c("N"=1),
 ###################################################
 ### code chunk number 7: qle_with_R.Rnw:1195-1197
 ###################################################
-S0 <- qscoring(qsd,x0=c("rho"=0.8),verbose=TRUE)
+S0 <- qscoring(qsd,x0=c("rho"=0.8))
 print(S0)
 
 
@@ -262,7 +262,7 @@ qsd <- getQLmodel(sim,lb,ub,obs,var.type="wcholMean")
 ###################################################
 ### code chunk number 25: qle_with_R.Rnw:1495-1497
 ###################################################
-QS <- qscoring(qsd, x0=c("mu"=5,"sigma"=3.0), verbose=TRUE)
+QS <- qscoring(qsd, x0=c("mu"=5,"sigma"=3.0))
 print(QS)
 
 
@@ -490,7 +490,7 @@ searchMinimizer(x0,qsd,info=TRUE,
 ###################################################
 qscoring(qsd,x0,
   opts=list("ftol_rel"=1e-6,"slope_tol"=1e-4),
-  cvm=cvm,verbose=TRUE)
+  cvm=cvm)
 
 
 ###################################################

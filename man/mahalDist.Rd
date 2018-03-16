@@ -54,8 +54,8 @@ Compute the Mahalanobis distance (MD) based on the kriging models of statistics
 }
 \details{
 The function computes the Mahalanobis distance of the given statistics \eqn{T(X)\in R^p} with different options
- for the approximation type of the variance matrix. The Mahalanobis distance can be used as an alternative criterion function for
- estimating the unknown model parameter during the main estimation function \code{\link{qle}}.
+ for the approximation type of the variance matrix. The Mahalanobis distance can be used as an alternative criterion function
+ for estimating the unknown model parameter during the main estimation function \code{\link{qle}}.
  
  There are several options how to estimate or choose the variance matrix of the statistics \eqn{\Sigma}.
  First, in case of a given constant variance matrix estimate `\code{Sigma}`, the Mahalanobis distance reads
@@ -74,8 +74,8 @@ The function computes the Mahalanobis distance of the given statistics \eqn{T(X)
  As a continuous version of variance approximation we use a kriging approach (see [1]). Then
  \deqn{\Sigma(\theta) = Var_{\theta}(T(X))}
  denotes the variance matrix which depends on the parameter \eqn{\theta\in R^q} and corresponds to the
- formal function argument `\code{points}`. Each time a value of the criterion function is calculated for any parameter
- `\code{point}` the variance matrix is estimated by the correpsonding approach either with or
+ formal function argument `\code{points}`. Each time a value of the criterion function is calculated at any parameter
+ `\code{points}` the variance matrix is estimated by the correpsonding approach either with or
  without using prediction variances as explained above. Note that in this case the argument `\code{Sigma}` is ignored.
 }
 \examples{

@@ -1,7 +1,7 @@
 Package: qle
 Title: Simulation-Based Quasi-Likelihood Estimation
-Version: 0.17
-Date: 2018-03-14
+Version: 0.17-1
+Date: 2018-03-16
 Authors@R: c(person("Markus", "Baaske", role = c("aut", "cre", "cph"),
 			 email = "markus.baaske@uni-jena.de"),
 			 person("K. Gerald", "van den Boogaart", role = c("ths"),
@@ -18,6 +18,6 @@ Repository/R-Forge/Project: qle
 RoxygenNote: 6.0.1
 ByteCompile: true
 NeedsCompilation: yes
-Packaged: 2018-03-16 09:50:58 UTC; root
+Packaged: 2018-03-16 12:06:43 UTC; root
 Repository: CRAN
-Date/Publication: 2018-03-16 10:42:48 UTC
+Date/Publication: 2018-03-16 17:20:25 UTC

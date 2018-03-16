@@ -120,7 +120,7 @@
 						 "|score_max|"=max(abs(qd$score)))
 				
 				if(!is.null(qd$Iobs)){								# computed only for criterion `qle` not `mahal`					
-					ret$minor <- .isPosDef(qd$Iobs)					# check pos. def. for criterion `qle`
+					ret[1] <- .isPosDef(qd$Iobs)					# check pos. def. for criterion `qle`
 					qIinv <- try(gsiInv(qd$I),silent=TRUE)			
 					if(!is.numeric(qIinv) || anyNA(qIinv) || .isError(qIinv) ) {		
 						message(.makeMessage("Failed to invert quasi-information."))
@@ -189,7 +189,7 @@
 #' @param verbose   logical, \code{TRUE} for intermediate output
 #' 
 #' @return A data frame with columns named corresponding to each component of the investigated parameter,
-#'  `\code{quasi-deviance}`, `\code{minor}`, `\code{det}`, `\code{max}`,
+#'  `\code{value}`, `\code{minor}`, `\code{det}`, `\code{max}`,
 #'  `\code{trace}` and `\code{score_max}` (see vignette). The second column shows the leading minor of
 #'   the observed QI matrix which is not positive definite. If so, then the corresponding parameter estimate
 #'   cannot be consistent at least in theory. The rows show the corresponding values for each parameter passed by

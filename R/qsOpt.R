@@ -906,7 +906,7 @@ searchMinimizer <- function(x0, qsd, method = c("qscoring","bobyqa","direct"),
 #' @param nstart 	  number of random samples from which to start local searches (if `\code{x0}`=\code{NULL}, then ignored)
 #' @param optInfo 	  logical, \code{FALSE} (default), whether to store original local search results
 #' @param multi.start logical, \code{FALSE} (default), whether to perform a multistart local search always otherwise only if first local search did not converge 
-#' @param cl 	 	  cluster object, \code{NULL} (default), of class "\code{MPIcluster}", "\code{SOCKcluster}", "\code{cluster}"
+#' @param cl 	 	  cluster object, \code{NULL} (default), of class \code{MPIcluster}, \code{SOCKcluster}, \code{cluster}
 #' @param pl		  print level, use \code{pl}>0 to print intermediate results
 #' @param verbose	  if \code{TRUE} (default), print intermediate output
 #' @param cores		  integer, number of local CPU cores used, default is \code{options(mc.cores,1L)}

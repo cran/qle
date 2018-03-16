@@ -66,7 +66,7 @@ The function contructs and estimates the parameters of the covariance models by 
  
   The default optimization algorithm for estimating the covariance parameters is \code{\link[nloptr]{mlsl}} followed by a final local search using
   \code{NLOPT_LN_COBYLA}. Note that in this case the estimated parameters may vary when starting the REML procedure several times since starting
-  points are chosen as random for \code{\link[nloptr]{mlsl}}. All options for optimization can be modified by the argument `\code{controls}`.
+  points are randomly chosen for \code{\link[nloptr]{mlsl}}. All options for optimization can be modified by the argument `\code{controls}`.
 
   Note that the returned object can also be constructed manually and passed as an input argument to
   \code{\link{QLmodel}} in case the user prefers to set up each covariance model separately. In this case, first use
