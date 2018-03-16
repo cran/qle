@@ -4,31 +4,34 @@
 \alias{qleTest}
 \title{Monte Carlo testing}
 \usage{
-qleTest(est, local = NULL, sim, ..., nsim = 100, obs = NULL,
-  check.root = FALSE, alpha = 0.05, na.rm = TRUE, cl = NULL,
-  iseed = NULL, verbose = FALSE)
+qleTest(est, par0 = NULL, obs0 = NULL, ..., sim, criterion = NULL,
+  nsim = 100, obs = NULL, alpha = 0.05, multi.start = 0L,
+  na.rm = TRUE, cl = NULL, iseed = NULL, verbose = FALSE)
 }
 \arguments{
 \item{est}{object of class \code{qle}, the estimation results from function \code{\link{qle}}}
 
-\item{local}{optional, object of class \code{QSResult}, \code{NULL} (default), local estimation results}
+\item{par0}{optional, vector of parameter for the null hypothesis}
 
-\item{sim}{user supplied simulation function (see \code{\link{qle}})}
+\item{obs0}{optional, vector of observed statistics corresponding to `\code{par0}`}
 
-\item{...}{arguments passed to the simulation function `\code{sim}`}
+\item{...}{arguments passed to the simulation function `\code{sim}`, \code{\link{searchMinimizer}} and \code{\link{multiSearch}}}
 
-\item{nsim}{number of model replications to generate the simulated statistics}
+\item{sim}{user supplied simulation function, see \code{\link{qle}}}
 
-\item{obs}{optional, \code{NULL} (default), simulated statistics at the hypothesized parameter}
+\item{criterion}{optional, \code{NULL} (default), name of the test statistic, either "\code{qle}" or "\code{mahal}" which overwrites the function criterion used for estimation of the model parameter}
 
-\item{check.root}{logical, \code{FALSE} (default), whether to check consistency of estimated parameter (see \code{\link{checkMultRoot}})}
+\item{nsim}{number of bootstrap replications of the statistical model to generate (simulated) statistics}
+
+\item{obs}{optional, \code{NULL} (default), simulated statistics at the hypothesised parameter, if not given, these are generated at `\code{par0}` or at `\code{est$par}`}
 
 \item{alpha}{significance level for testing the hypothesis}
 
-\item{na.rm}{logical, \code{TRUE}  (default), whether to remove `NA` values from the matrix of
-re-estimated parameters}
+\item{multi.start}{integer, \code{=0,1,2}, level of multi start root finding (see details)}
 
-\item{cl}{cluster object, \code{NULL} (default), see \code{\link[parallel]{makeCluster}}}
+\item{na.rm}{logical, \code{TRUE}  (default), whether to remove `NA` values from the matrix of re-estimated parameters}
+
+\item{cl}{cluster object, \code{NULL} (default), of class \code{MPIcluster}, \code{SOCKcluster}, \code{cluster}}
 
 \item{iseed}{integer, the seed for initializing the cluster workers for parallel computations}
 
@@ -39,46 +42,49 @@ An object of class \code{qleTest} as a list of:
  \item{param}{ data frame of estimated parameters and error measures}
 	\item{test}{ the test result}
  \item{Stest}{ name of the test} 
-and attributes:
+
+with attributes:
+
 	 \item{msem}{ mean square error matrix of re-estimated parameters}
   \item{aiqm}{ average inverse quasi-information matrix over all re-estimated parameters}
 	 \item{qi}{ inverse quasi-information matrix at the parameter to be tested `\code{est$par}`}
-  \item{relED}{ relative difference of the empirial and predicted standard error of the parameter to be tested} 
-  \item{obs}{ list of simulated observed statistics}
-  \item{optRes}{ results from re-estimating the model parameters for each simulated observation from `\code{obs}`}
+  \item{relEF}{ relative difference of the empirial and predicted standard error of the parameter to be tested} 
+  \item{obs}{ list of simulated statistics either at the estimated parameter or at the optional parameter `\code{par0}`}
+  \item{optRes}{ results from re-estimating the model parameters for each simulated observation `\code{obs}`}
  \item{mean.score}{ average quasi-score, respectively, average gradient of the MD at the re-estimated parameters}
-	 \item{criterion}{always equal to "\code{qle}"}  
-  \item{solInfo}{ results of the numerical consistency checks for each re-estimated parameter} 
-	 \item{info}{ list of indices of re-estimation results where the inversion of the quasi-information matrix failed,
-      the re-estimated parameters have \code{NA} values, criterion function minimizations have errors or did not
-      converge numerically, the integer seed value `\code{iseed}`}
+	 \item{criterion}{ name of criterion function used as a test statistic: "\code{qle}" or "\code{mahal}"}  
+	 \item{info}{ list of the following elements: indices of re-estimation results where the inversion of the quasi-information matrix failed,
+      the re-estimated parameters have `NA`s, criterion function minimizations failed or did not converge numerically,
+      the integer seed value `\code{iseed}`}
 }
 \details{ The function tests the null hypothesis \eqn{H_0:\,\hat{\theta}=\theta_0}, that is, whether the statistical
- model w.r.t. to the estimated parameter is true, against the alternative \eqn{H_1:\,\hat{\theta}\neq\theta_0} by testing based
- on a Monte Carlo approach (see vignette). Due to the approximate nature of the assumed statistical model for the observed data the
+ model w.r.t. to the estimated parameter explains the observed statistics, against the alternative \eqn{H_1:\,\hat{\theta}\neq\theta_0} based
+ on a Monte Carlo approach (see vignette). Due to the approximate nature of the assumed statistical model for the observed statistics the
  exact distribution of the test statistics, that is, the Mahalanobis distance or quasi-deviance, is generally unknown and therefore
  its asymptotic distribution might be an unrealistic assumption for the null hypothesis. For this reason, and in order to retrieve an empirical
- P-value for testing, we generate (pseudo-)observations from the outcome of the model replications and re-estimate the model
- parameter for each realization in the same way as done before when estimating the model parameter. This includes all possible types
- of variance approximations (by kriging or average approximation) and types of prediction variance (kriging or the CV-based variance).
+ p-value for testing, we generate bootstrap observations and re-estimate the model parameter for each observation in the same way as done before
+ when estimating the model parameter. This includes all possible types of variance approximations available (by kriging or average approximations)
+ and types of prediction variances (by kriging or cross-validation).
 
- The function expects an estimation result as returned from \code{\link{qle}}. If any generated observations are readily available
- at the final parameter estimate, then these can be passed by `\code{obs}`. Otherwise the function first generates those
- using `\code{nsim}` model replications at the estimated parameter as part of `\code{est}` or `\code{local}`. The criterion
- function approximations are used as it (specified in the object `\code{qsd}`) and will not be further improved by
- additional samples during the test.
- The value of the test statistic is either chosen as the current criterion function value in `\code{OPT}`
- (see  argument `\code{criterion}` in \code{\link{getQLmodel}}) or is taken from the optional argument `\code{local}`. Given the local results
- `\code{local}` of class \code{QSResult}, the user can also select a different criterion function as a test statistic than before when
- estimating the parameter itself. Apart from the quasi-deviance as a test statistic, in principle, any supported type of a least squares criterion,
- more generally, the Mahalanobis distance, can be used depending on the prefered type of variance matrix approximation, see \code{\link{covarTx}}.
- Practically, the re-estimations might fail to converge, however, then the user can control the convergence conditions of the local solvers
- (including quasi-scoring) by the corresponding control parameters (see \code{\link{searchMinimizer}}). Any failed re-estimations are
+ The function expects an estimation result `\code{est}` as returned from the main estimation function \code{\link{qle}}. If any simulated statistics
+ are available at the final parameter estimate or at `\code{par0}`, then these can be passed by `\code{obs}` and used as bootstrapped observations of the
+ summary statistics. Otherwise the function first generates those using `\code{nsim}` model replications. The criterion function approximations are used as
+ specified in the object `\code{qsd}` and will not be further augmented by additional samples or simulations during the test procedure.
+ The value of the test statistic is either chosen as the current criterion function value at the estimated parameter or it is re-computed at the
+ given parameter `\code{par0}` using, if given, the `real` observed statistics `\code{obs0}`. The user can also select a different criterion function
+ as a test statistic compared to the estimation before which can be set by `\code{criterion}`. Apart from the quasi-deviance as a test statistic, in
+ principle, any supported type of a least squares criterion, more generally, the Mahalanobis distance, can be used which only depends on the prefered type
+ of variance matrix approximation, see \code{\link{covarTx}}.
+
+ In order to efficiently find the roots of the quasi-score vector we implement a multi start concept for minimizing the criterion function.
+ If `\code{multi.start=0}` no single root finding is initiated from the estimated parameter (as a starting point) for each newly generated observation.
+ Using `\code{multi.start=1}` starts a multi start root finding only in case the local optimization gets stuck into a local minimum or does not
+ converge and setting `\code{multi.start=2}` always triggers a multi start local search for each simulated observation. Practically, the re-estimations
+ of the parameters might still fail to converge. However, the user can control the convergence conditions of the local solvers
+ (including the quasi-scoring iteration) by the corresponding control parameters (see \code{\link{searchMinimizer}}). Any failed re-estimation is
  excluded from the test results and stored in the attribute `\code{info}`. In addition, as part of the returned data frame `\code{param}`
  the empirical standard error, predicted standard error (based on the average inverse quasi-information matrix), the root mean square error,
- the bias and sample mean value of the re-estimated parameters are also available.
-
-	For an example please see the package vignette.
+ the bias and sample mean value of the re-estimated parameters are also available. For a full example we refer the reader to the package vignette.
 }
 \description{
 Monte Carlo hypothesis testing

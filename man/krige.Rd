@@ -26,7 +26,7 @@ extract(X, type = c("mean", "sigma2", "weights"))
 
 \item{varKM}{ list of kriging prediction variances}
 
-\item{\code{extract}}{matrix of corresponding values (see details)}
+\item{\code{extract}}{ matrix of corresponding values (see details)}
 }
 \description{
 \describe{
@@ -37,10 +37,9 @@ extract(X, type = c("mean", "sigma2", "weights"))
 }
 \details{
 For a list of fitted covariance models the function \emph{predictKM} predicts the
-	 sample means of statistics at (unsampled) points, calculates the prediction
-	 variances (if `\code{krig.type}` equals "\code{var}") at these points and extracts the results.
-	 Note that, since we aim on predicting the simulation "error free" value of the sample means,
-  we use a \emph{smoothing} kriging predictor (see [2, Sec. 3.7.1]).
+	 sample means of statistics at (unsampled) points, calculates the prediction variances, if applicable,
+  at these points and extracts the results. Note that, since we aim on predicting the "error free" value of the sample means,
+  we use the \emph{smoothing} kriging predictor as described in [2, Sec. 3.7.1].
 
 The function \emph{extract} either returns the predicted values, the
  prediction variances or the kriging weights for each point.

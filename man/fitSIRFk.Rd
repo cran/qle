@@ -9,28 +9,28 @@ fitSIRFk(qldata, set.var = TRUE, var.type = "wcholMean",
   controls = list(), cl = NULL, verbose = FALSE)
 }
 \arguments{
-\item{qldata}{object of class \code{QLdata}, a data frame from \code{\link{setQLdata}}}
+\item{qldata}{object of class \code{QLdata}, a data frame from function \code{\link{setQLdata}}}
 
 \item{set.var}{logical vector of length one or equal to the number of covariance models;
 for values \code{TRUE} (default), set simulation variances as local nugget variances
-for the corresponding covariance model/statistic}
+for the corresponding covariance model according to its index}
 
 \item{var.type}{name of variance matrix approximation type (see \code{\link{covarTx}})}
 
 \item{var.opts}{list of arguments passed to \code{\link{setCovModel}}
 (only if `\code{var.type}`="\code{kriging}" and ignored otherwise)}
 
-\item{intrinsic}{logical vector of length one or equal to the number of Cholesky decompositions of variance matrices;
-for values \code{TRUE}, use an internal nugget variance estimate (see details)
-   for kriging approximations of the variance matrix}
+\item{intrinsic}{logical vector, \code{FALSE} (default), of length one or equal to the number of Cholesky
+decompositions of variance matrices; as default use an internal nugget variance estimate (see details)
+for kriging the variance matrix of the statistics}
 
 \item{...}{arguments passed to \code{\link{setCovModel}}}
 
 \item{controls}{list of control parameters passed to \code{\link[nloptr]{nloptr}} for local minimization}
 
-\item{cl}{cluster object, \code{NULL} (default), see \code{\link[parallel]{makeCluster}}}
+\item{cl}{cluster object, \code{NULL} (default), of class "\code{MPIcluster}", "\code{SOCKcluster}", "\code{cluster}"}
 
-\item{verbose}{if \code{TRUE}, print intermediate results}
+\item{verbose}{if \code{TRUE}, show intermediate output}
 }
 \value{
 A list of fitted covariance models for kriging the sample means of statistics named `\code{covT}` and optionally
@@ -40,34 +40,39 @@ A list of fitted covariance models for kriging the sample means of statistics na
 Fit a generalized covariance model to simulation data
 }
 \details{
-The function estimates the parameters of a covariance model using the REML method for kriging
+The function contructs and estimates the parameters of the covariance models by the REML estimatino method for both kriging
   the sample means of the statistics and kriging the variance matrix of statistics unless `\code{var.type}`
-  equals "\code{const}". By default it uses the covariance model derived from a (self-similar) intrinsic random function
-  (`\code{sirfk}`) of order \eqn{k} (see, e.g. [1]) with \eqn{k=1,2} for all statistics (including a default quadratic drift term \eqn{k=2}).
-  The user can also define different covariance models for each statistic separately (see below). Other covariance models can be used by their
-	 name `\code{model}` which is passed to the function \code{\link{setCovModel}}. 
+  equals "\code{const}" for the latter. The default covariance model is derived from a (self-similar) intrinsic random function, that is,
+  the `\code{sirfk}` function of order \eqn{k} (see, e.g. [1]) with \eqn{k=1,2}, for all statistics (including a default quadratic drift term
+  \eqn{k=2}). The user can also define different covariance models for each statistic separately (see below). Other covariance models can be set
+  by their name in the argument `\code{model}` which is passed to the function \code{\link{setCovModel}}. Currently, kriging the variance matrix
+  is done by the `\code{sirfk}` model. 
    		
-  Argument `\code{var.opts}` only sets the options for the covariance models for kriging the variance matrix if this is the users prefered
-  type of approximation. Other optional arguments, e.g., `\code{var.sim}` for the statistics, `\code{var.opts$var.sim}` for kriging the variance matrix,
-  specify the local or global  \dfn{nugget} values for each sample point depending on whether or not `\code{set.var}` (used for kriging the statistics) equals \code{TRUE}.
-  Both are passed to \code{\link{setCovModel}} and must be data frames of lengths (number of columns) corresponding to the number of covariance
-  models of statistics  and, respectively, to the number of \emph{Cholesky} decomposed terms in case of kriging the variance matrix.
-  If `\code{set.var}` is \code{TRUE}, then the values in `\code{var.sim}` are used as fixed `nugget` values and replicated to match the number of sample points if required.
-  Otherwise these are considered as simulation variances and hence scaled by 1/\code{nsim}, which is meaningful only for kriging the sample means of the
-  statistics.
-
-  The same principle applies in case of kriging the variance matrix. Then the values given by `\code{var.opts$var.sim}`
-  (of length one or equal to the number of corresponding sample points) are used as scale factors for all Cholesky decomposed terms
-  unlsee `\code{intrinsic}` equals \code{TRUE}, otherwise considered as estimates of local nugget variances (of Cholesky decomposed terms at each
-  sample point). A global nugget value can be also estimated during the REML estimation which is the default option for both cases unless
-  this parameter is excluded from covariance parameter estimation (see \code{\link{setCovModel}}) and then this is used as it is.
-  The default method for estimating the covariance parameters is \code{\link[nloptr]{mlsl}} which can be modified by argument \code{controls}.
+  The argument `\code{var.opts}` only sets the options for the covariance models for kriging the variance matrix if this is the users prefered
+  type of approximation. Further optional arguments, e.g., `\code{var.sim}` used only for the approximatino of the statistics,
+  `\code{var.opts$var.sim}` for kriging the variance matrix, specify the local vector of \dfn{nugget} values for each sample point depending on
+  whether or not `\code{set.var}` (which is only used for kriging the statistics) equals \code{TRUE}. Both arguments are passed to
+  \code{\link{setCovModel}} and must be data frames of lengths (number of columns) corresponding to the number of covariance
+  models of the statistics and, respectively, to the number of \emph{Cholesky} decomposed terms in case of kriging the variance matrix.
+  If `\code{set.var=TRUE}` (default), then local nugget variances are estimated by the variance of the sample average of the simulated values of the statistics.
+  Otherwise the values given in `\code{var.sim}` are used as fixed `nugget` variances and replicated to match the number of sample points.
+ 
+  The same applies in case of kriging the variance matrix. If `\code{intrinsic=TRUE}`, then local nugget variances
+  for each of the variance-covariances of the statistics are estimated by a bootstrapping procedure. Otherwise the values given by
+  `\code{var.opts$var.sim}` (of length one or equal to the number of corresponding sample points) are used directly as local estimates
+  (which then must exactly match the order of the Cholesky decomposed terms). A global nugget value can be estimated during the REML
+  estimation which is the default option for both cases unless this parameter is excluded from the covariance parameter estimation
+  (see \code{\link{setCovModel}}).
+ 
+  The default optimization algorithm for estimating the covariance parameters is \code{\link[nloptr]{mlsl}} followed by a final local search using
+  \code{NLOPT_LN_COBYLA}. Note that in this case the estimated parameters may vary when starting the REML procedure several times since starting
+  points are chosen as random for \code{\link[nloptr]{mlsl}}. All options for optimization can be modified by the argument `\code{controls}`.
 
   Note that the returned object can also be constructed manually and passed as an input argument to
-  \code{\link{QLmodel}} in case the user prefers to set up each covariance model separately. In this case, first use \code{\link{setCovModel}} to construct
-	 the covariance model, then estimate the parameters by \code{\link{fitCov}} and pass a list of fitted covariance models to function \code{\link{QLmodel}}. 	 
- 
-	 Please see function \code{\link{QLmodel}} for an example.
+  \code{\link{QLmodel}} in case the user prefers to set up each covariance model separately. In this case, first use
+  \code{\link{setCovModel}} to construct the covariance model, then estimate the parameters by \code{\link{fitCov}} and pass a list of
+  fitted covariance models to function \code{\link{QLmodel}}. The resulting object is the same as obtained by this function. Please see
+  the function \code{\link{QLmodel}} for an example.
 }
 \seealso{
 \code{\link{setCovModel}}, \code{\link{fitCov}},  \code{\link{QLmodel}}

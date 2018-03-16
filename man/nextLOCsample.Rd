@@ -9,15 +9,15 @@ nextLOCsample(S, x, n, lb, ub, pmin = 0.05, invert = FALSE)
 \arguments{
 \item{S}{variance matrix of sample points (usually chosen as the information matrix)}
 
-\item{x}{an approximate root as the mean value if the MVN distribution}
+\item{x}{an approximate root as the mean value if the multivariate normal distribution}
 
-\item{n}{number of points to sample}
+\item{n}{number of points to randomly sample}
 
-\item{lb}{vector of lower bounds of the hypercube}
+\item{lb}{vector of lower bounds of the (hyper)box}
 
-\item{ub}{vector of upper bounds of the hypercube}
+\item{ub}{vector of upper bounds of the (hyper)box}
 
-\item{pmin}{minimum required probability to cover the hypercube (parameter space)}
+\item{pmin}{minimum required ratio of points falling inside the hyperbox of parameters}
 
 \item{invert}{optional, \code{invert=FALSE} (default) for no inversion of `\code{S}`}
 }
@@ -25,7 +25,7 @@ nextLOCsample(S, x, n, lb, ub, pmin = 0.05, invert = FALSE)
 Matrix of sampled locations.
 }
 \description{
-Generate a random sample of points as a set of candidates for evaluation
+Generate a random sample of points as a set of candidate points for evaluation
 }
 \details{
 The function generates a random sample of points with mean and variance given by `\code{x}`

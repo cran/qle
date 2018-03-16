@@ -5,31 +5,33 @@
 \title{Mahalanobis distance of statistics}
 \usage{
 mahalDist(points, qsd, Sigma = NULL, ..., cvm = NULL, obs = NULL,
-  inverted = FALSE, check = TRUE, value.only = FALSE, cl = NULL,
-  verbose = FALSE)
+  inverted = FALSE, check = TRUE, value.only = FALSE, na.rm = TRUE,
+  cl = NULL, verbose = FALSE)
 }
 \arguments{
 \item{points}{either matrix or list of points or a vector of parameters (but then considered
-as a single point)}
+as a single (multidimensional) point)}
 
 \item{qsd}{object of class \code{\link{QLmodel}}}
 
-\item{Sigma}{either a constant variance matrix estimate or an pre-specified value}
+\item{Sigma}{either a constant variance matrix estimate or an prespecified value}
 
 \item{...}{further arguments passed to \code{\link{covarTx}} for variance average approximation}
 
 \item{cvm}{list of fitted cross-validation models (see \code{\link{prefitCV}})}
 
-\item{obs}{numeric vector of observed statistics (this overwrites `\code{qsd$obs}`)}
+\item{obs}{numeric vector of observed statistics (overwrites `\code{qsd$obs}` if given)}
 
 \item{inverted}{logical, \code{FALSE} (default), whether `\code{Sigma}` is already inverted when
-used as constant variance matrix}
+used as constant variance matrix only}
 
 \item{check}{logical, \code{TRUE} (default), whether to check all input arguments}
 
 \item{value.only}{only return the value of the MD}
 
-\item{cl}{cluster object, \code{NULL} (default), see \code{\link[parallel]{makeCluster}}}
+\item{na.rm}{logical, if \code{TRUE} (default) remove `Na` values from the results}
+
+\item{cl}{cluster object, \code{NULL} (default), of class \code{MPIcluster}, \code{SOCKcluster}, \code{cluster}}
 
 \item{verbose}{if \code{TRUE}, then print intermediate output}
 }
@@ -38,9 +40,9 @@ Either a vector of MD values or a list of lists, where each contains the followi
 \item{value}{ Mahalanobis distance value}
 \item{par}{ parameter estimate}
 \item{I}{ approximate variance matrix of the parameter estimate}
-\item{score}{ gradient of MD (for fixed `\code{Sigma}`)}
-\item{jac}{ Jacobian of sample average statistics}
-\item{varS}{ estimated variance of the gradient `\code{score}`}
+\item{score}{ gradient of MD (for constant `\code{Sigma}`)}
+\item{jac}{ Jacobian of sample mean values of statistics}
+\item{varS}{ estimated variance matrix of `\code{score}`}
 
 and, if applicable, the following attributes:
 
@@ -52,13 +54,13 @@ Compute the Mahalanobis distance (MD) based on the kriging models of statistics
 }
 \details{
 The function computes the Mahalanobis distance of the given statistics \eqn{T(X)\in R^p} with different options
- how to approximate the variance matrix. The Mahalanobis distance can be used as an alternative criterion function for
- estimating the unknown parameter during the main estimation function \code{\link{qle}}.
+ for the approximation type of the variance matrix. The Mahalanobis distance can be used as an alternative criterion function for
+ estimating the unknown model parameter during the main estimation function \code{\link{qle}}.
  
  There are several options how to estimate or choose the variance matrix of the statistics \eqn{\Sigma}.
  First, in case of a given constant variance matrix estimate `\code{Sigma}`, the Mahalanobis distance reads
 	\deqn{ (T(x)-E_{\theta}[T(X)])^t\Sigma^{-1}(T(x)-E_{\theta}[T(X)]) }
- and `\code{Sigma}` is directly used.
+ and `\code{Sigma}` is used as given.
 
  As a second option, the variance matrix \eqn{\Sigma} can be estimated by the average approximation 
  \deqn{\bar{V}=\frac{1}{n}\sum_{i=1}^n V_i  }
@@ -67,13 +69,13 @@ The function computes the Mahalanobis distance of the given statistics \eqn{T(X)
  Unless `\code{qsd$var.type}` equals "\code{const}" additional prediction variances are added as diagonal terms to
  account for the kriging approximation error of the statistics using kriging with calculation of kriging variances
  if `\code{qsd$krig.type}` equal to "\code{var}". Otherwise no additional variances are added. A weighted version of
- the these average approximation types is also available (see \code{\link{covarTx}}).
+ these average approximation types is also available (see \code{\link{covarTx}}).
  
  As a continuous version of variance approximation we use a kriging approach (see [1]). Then
  \deqn{\Sigma(\theta) = Var_{\theta}(T(X))}
- denotes the variance matrix which depends on the parameter \eqn{\theta\in R^q}, which corresponds to the
+ denotes the variance matrix which depends on the parameter \eqn{\theta\in R^q} and corresponds to the
  formal function argument `\code{points}`. Each time a value of the criterion function is calculated for any parameter
- `\code{point}` this matrix is estimated by the correpsonding kriging model defined in `\code{qsd$covL}` either with or
+ `\code{point}` the variance matrix is estimated by the correpsonding approach either with or
  without using prediction variances as explained above. Note that in this case the argument `\code{Sigma}` is ignored.
 }
 \examples{

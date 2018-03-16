@@ -5,11 +5,11 @@
 \title{Quasi-deviance computation}
 \usage{
 quasiDeviance(points, qsd, Sigma = NULL, ..., cvm = NULL, obs = NULL,
-  inverted = FALSE, check = TRUE, value.only = FALSE, cl = NULL,
-  verbose = FALSE)
+  inverted = FALSE, check = TRUE, value.only = FALSE, na.rm = TRUE,
+  cl = NULL, verbose = FALSE)
 }
 \arguments{
-\item{points}{list or matrix of points where to compute the QD; a numeric vector is considered to be a point}
+\item{points}{list or matrix of points where to compute the QD (a numeric vector is considered to be a (multidimensional) point)}
 
 \item{qsd}{object of class \code{\link{QLmodel}}}
 
@@ -19,20 +19,22 @@ quasiDeviance(points, qsd, Sigma = NULL, ..., cvm = NULL, obs = NULL,
 
 \item{cvm}{list of cross-validation models (see \code{\link{prefitCV}})}
 
-\item{obs}{numeric vector of observed statistics, this overwrites `\code{qsd$obs}` if supplied}
+\item{obs}{numeric vector of observed statistics, this overwrites `\code{qsd$obs}`, if supplied}
 
-\item{inverted}{currently ignored}
+\item{inverted}{logical, \code{FALSE} (default), currently ignored}
 
 \item{check}{logical, \code{TRUE} (default), whether to check input arguments}
 
 \item{value.only}{if \code{TRUE} only the values of the QD are returned}
 
-\item{cl}{cluster object, \code{NULL} (default) (see \code{\link[parallel]{makeCluster}})}
+\item{na.rm}{logical, if \code{TRUE} (default) remove `Na`s from the result}
+
+\item{cl}{cluster object, \code{NULL} (default), of class \code{MPIcluster}, \code{SOCKcluster}, \code{cluster}}
 
 \item{verbose}{logical, \code{TRUE} for intermediate output}
 }
 \value{
-Numeric vector of QD values or a list as follows:
+Numeric vector of QD values, if values only, or a list with elements:
 \item{value}{ quasi-deviance value}
 \item{par}{ parameter estimate}
 \item{I}{ quasi-information matrix}
@@ -44,46 +46,47 @@ Numeric vector of QD values or a list as follows:
 
  The matix `\code{Iobs}` is called the \eqn{\emph{observed quasi-information}} (see [2, Sec. 4.3]),
  which, in our setting, can be calculated at least numerically as the Jacobian of the quasi-score vector.
- Further, `\code{varS}` denotes the approximate variance-covariance matrix of the quasi-score vector given the observed
- statistics and serves as a measure of accuracy (see [1] and the vignette, Sec. 3.2) of the approximation at some point.
+ Further, `\code{varS}` denotes the approximate variance-covariance matrix of the quasi-score given the observed
+ statistics and serves as a measure of estimation precision (see [1] and the vignette, Sec. 3.2).
 }
 \description{
-The function computes the quasi-deviance (QD) for parameters (called points) of the parameter
- search space including the quasi-score vector and optionally its variance.
+The function computes the quasi-deviance (QD) at parameters (called points) of the parameter
+ search space including the computation of the quasi-score vector and optionally its variance matrix.
 }
 \details{
 The function calculates the QD (see [1]). It is the primary function criterion to be minimized
   for estimating the unknown model parameter by \code{\link{qle}} and involves the computation of the quasi-score
   and quasi-information matrix at a particular parameter. From a statistical point of view, the QD can be seen as
   a generalization to the \emph{efficient score statistic} (see [3] and the vignette) and is used as a decision
-  rule in the estimation function \code{\link{qle}} in order to hypothesize about the true model parameter. A modified value of
-  the QD, using the inverse of the variance of the quasi-score vector as a weighting matrix, is stored in the result `\code{qval}`.
+  rule in the estimation function \code{\link{qle}} in order to hypothesise about the true model parameter. A modified value of
+  the QD, using the inverse of the variance of the quasi-score (as a weight matrix) is stored in the result `\code{qval}`.
    
   Quasi-deviance values which are relatively small (compared to the empirical quantiles of its approximate chi-squared
   distribution) suggest a solution to the quasi-score equation and hence could identify the unknown model parameter
-  in some probabilistic sense. This can be further investigated by testing the hypothesis by function \code{\link{qleTest}}
-  whether the estimated model parameter is the true.
+  in some probabilistic sense. Estimated parameters including different observed statistics can be investigated by 
+  a MC goodness-of-fit test, see \code{\link{qleTest}}.
 
   Further, if we use a weighted variance average approximation of statistics (see \code{\link{covarTx}}),
-  then the QD value is calculated rather locally w.r.t. to an estimate `\code{theta}`. Note that, opposed to the MD,
-  the QD does not support a constant variance matrix. However, if supplied, then `\code{Sigma}` is used as a first estimate
-  and, if `\code{qsd$krig.type}`="\code{var}", prediction variances are also added (see also \code{\link{mahalDist}}).    
+  then the QD value is calculated rather locally w.r.t. to an estimated parameter `\code{theta}`. Note that, opposed to the MD,
+  a constant variance matrix is not applicable to the computation of the QD. However, if supplied, `\code{Sigma}` is used
+  as a first estimate and in case of `\code{qsd$krig.type}`="\code{var}" prediction variances of the involved statistics at
+  `\code{points}` are added as diagonal terms (see also \code{\link{mahalDist}}).    
 
 	 \subsection{Use of prediction variances}{ 
-	 In order to not only account for the simulation error but additionally for the approximation error of the
+	 In order to not only account for the simulation variance but additionally for the approximation error of the
   quasi-score vector we include the prediction variances of the involved statistics either based on
-  cross-validation or kriging unless `\code{qsd$krig.type}` equals "\code{dual}". If `\code{cvm}` is not given, then
-  the prediction variances are obtained by kriging. Using prediction variances the error matrix `\code{varS}` of
-  the quasi-score vector is part of the return list and omitted otherwise. Besides the quasi-information matrix
-  also the observed quasi-information matrix (as a numerically derived Jacobian, given by `\code{Iobs}`, of the quasi-score vector)
-  is returned. A good match between those two matrices suggests a possible root (with some probablity) if the corresponding
-  QD value is relatively small. This can be further investigated by function \code{\link{checkMultRoot}}.
+  a cross-validation or kriging approach unless `\code{qsd$krig.type}` equals "\code{dual}". If `\code{cvm}` is not given, then
+  the prediction variances are obtained based on the kriging procedure applied to the statistics. Using prediction variances the
+  variance matrix `\code{varS}` of the quasi-score vector is part of the return list and omitted otherwise. Besides the quasi-information
+  matrix the observed quasi-information matrix (as a numerically derived Jacobian, given by `\code{Iobs}`, of the quasi-score vector)
+  is also returned. A good match between those two matrices suggests an approximate root if the corresponding
+  QD value is relatively small. This can be further investigated using the function \code{\link{checkMultRoot}}.
 
-  Alternatively, also CV-based prediction variances (with additional covariance models given by `\code{cvm}`)
-  for each single statistic can be used to produce relatively robust estimation results but for the price of
+  Alternatively, also CV-based prediction variances (which involve additional covariance models given by `\code{cvm}` for each left out
+  sample point) for each single statistic can be used to produce relatively robust parameter estimation results but for the price of
   much higher computational costs. In practice this might overcome the general tendency inherent to kriging to underestimate
-  the prediction variances of the sample means of the statistics and should be used if kriging the variance matrix of the statistics.
-  Further, CV is generally recommended in all situations where it is important to obtain a robust estimate of the unkown model parameter.
+  the prediction variances of the sample means of the statistics and should be used if one decides using kriging for the approximation of
+  the variance matrix. 
   }
 }
 \examples{

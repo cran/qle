@@ -3,7 +3,7 @@
 \name{estim}
 \alias{estim}
 \alias{jacobian}
-\title{Kriging prediction and estimation of derivatives}
+\title{Kriging prediction and numerical approximation of derivatives}
 \usage{
 estim(models, points, Xs, data, krig.type = c("dual", "var", "both"))
 
@@ -11,7 +11,7 @@ jacobian(models, points, Xs, data, krig.type = c("dual", "var", "both"))
 }
 \arguments{
 \item{models}{object of class \code{krige} either as a list of covariance models or
-class `\code{covModel}` as a single covariance model, see \code{\link{setCovModel}}}
+class \code{covModel} as a single covariance model, see \code{\link{setCovModel}}}
 
 \item{points}{matrix or list of points to predict the sample means of statistics}
 
@@ -32,16 +32,15 @@ class `\code{covModel}` as a single covariance model, see \code{\link{setCovMode
 Jacobian of mean values of statistics
 }
 \details{
-The function can be used to predict any values by kriging given a covariance model. In particular, we use it to predict
- the sample mean of any statistic. Each covariance model is given as an element of the list `\code{models}` including its own trend
- model and covariance function name. There are two types of kriging predictors available. First, the \emph{dual kriging} predictor,
- set by `\code{krig.type}`="\code{dual}" or the one based on the calculation of prediction variances, if `\code{krig.type}` equals
- "\code{var}". Both result in exactly the same predicted values and only differ by whether or not kriging variances are calculated.
- The measurements (data), e.g. sample means for each statistic, must be given as column vectors where each row corresponds to a
- sample point in the data frame `\code{data}`.
+The function can be used to predict any values by kriging given a covariance model. Each covariance model is given as an
+ element of the list `\code{models}` including its own trend model and covariance function name. There are two types of kriging predictors
+ available. First, the \emph{dual kriging} predictor, set by `\code{krig.type}`="\code{dual}" or the one based on the calculation of prediction
+ variances, setting `\code{krig.type}` to "\code{var}". Both types result in exactly the same predicted values and only differ by whether or not
+ kriging variances should be computed. The data, e. g. sample means of each statistic, must be given as column vectors where each row corresponds
+ to a sample point in the data frame given in the argument `\code{data}`.
 
 The function `\code{jacobian}` computes the partial derivatives of sample means of the statistics
-  as columns and for each component of the parameter vector as rows by forward differences.
+  as columns and for each component of the parameter vector as rows by forward difference approximations.
 }
 \examples{
 data(normal) 

@@ -2,44 +2,45 @@
 % Please edit documentation in R/covariance.R
 \name{getQLmodel}
 \alias{getQLmodel}
-\title{Setup the quasi-likelihood estimation model}
+\title{Setup the quasi-likelihood approximation model all at once}
 \usage{
 getQLmodel(runs, lb, ub, obs, X = NULL, useVar = TRUE, criterion = "qle",
   ...)
 }
 \arguments{
-\item{runs}{object of class \code{simQL} as simulation results from \code{\link{simQLdata}}}
+\item{runs}{object of class \code{simQL}, simulation results from \code{\link{simQLdata}}}
 
-\item{lb}{lower bounds defining the (hyper)box}
+\item{lb}{lower bounds defining the (hyper)box of the parameter domain for QL estimation}
 
-\item{ub}{upper bounds defining the (hyper)box}
+\item{ub}{upper bounds defining the (hyper)box of the parameter domain for QL estimation}
 
 \item{obs}{numeric vector of observed statistics}
 
 \item{X}{matrix of sample locations (model parameters)}
 
-\item{useVar}{logical, \code{TRUE} (default), whether to use prediction variances}
+\item{useVar}{logical, \code{TRUE} (default), whether to use prediction variances of any kind}
 
-\item{criterion}{the criterion function to be minimized for parameter estimation (see \code{\link{qle}})}
+\item{criterion}{name of criterion function to be minimized for QL estimation (see \code{\link{qle}})}
 
-\item{...}{arguments passed to \code{\link{fitSIRFk}} for fitting covariance models}
+\item{...}{arguments passed to \code{\link{fitSIRFk}}, \code{\link{setQLdata}}, \code{\link{setCovModel}} 
+and \code{\link{QLmodel}} for REML estimation of all covariance models}
 }
 \value{
 Object of class \code{\link{QLmodel}}
 }
 \description{
-Setup the quasi-likelihood model data
+Initial setup of the quasi-likelihood approximation model
 }
 \details{
-The function is a wrapper to \code{\link{setQLdata}} and \code{\link{fitSIRFk}}
- in order to setup the data required for estimating the model parameters.
+The function is a wrapper of \code{\link{simQLdata}}, \code{\link{QLmodel}}, \code{\link{fitSIRFk}}
+ and thus sets up the quasi-likelihood approximation model all at once.
 }
 \examples{
 
 data(normal)
 
 # simulate model at a minimum of required design points
-sim <- simQLdata(sim=qsd$sim,nsim=5,N=8,
+sim <- simQLdata(sim=qsd$simfn,nsim=5,N=8,
 			 method="maximinLHS",lb=qsd$lower,ub=qsd$upper)
 	 
 # true and error-free observation

@@ -73,7 +73,11 @@ NULL
 #' @keywords datasets
 #' @name qsd
 #' @usage data(normal)
-#' @format same format as an object of class \code{\link{QLmodel}} 
+#' @format A list object named `\code{qsd}` of class \code{\link{QLmodel}} with additional elements
+#'    \itemize{
+#' 	   \item{simfn}{ simulation function }
+#'     \item{sim}{ simulation results at design points, class `\code{simQL}`}
+#' 	  }
 #' @author M. Baaske
 NULL
 

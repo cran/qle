@@ -14,29 +14,29 @@ updateCovModels(qsd, nextData, fit = TRUE, cl = NULL, controls = list(),
 
 \item{fit}{logical, if \code{TRUE} (default), re-estimate covariance parameters}
 
-\item{cl}{cluster object, \code{NULL} (default), see \code{\link[parallel]{makeCluster}}}
+\item{cl}{cluster object, \code{NULL} (default), of class "\code{MPIcluster}", "\code{SOCKcluster}", "\code{cluster}"}
 
 \item{controls}{list of control parameters passed to \code{\link[nloptr]{nloptr}}}
 
-\item{verbose}{logical, whether to print intermediate information}
+\item{verbose}{logical, \code{FALSE} (default), whether to show intermediate output}
 }
 \value{
 Object of class \code{\link{QLmodel}} as a list of updated covariance models
 }
 \description{
-The function updates the current covariance models
- stored in `\code{qsd}`.
+The function updates the current covariance models stored in `\code{qsd}`.
 }
 \details{
 The function updates both, the covariance models for kriging the statistics, and, if applicable,
- the ones for kriging the variance matrix of statistics based on the new data \code{nextData}. In practice, the user hardly
+ the ones for kriging the variance matrix of statistics based on the new data given by `\code{nextData}`. In practice, the user hardly
  needs to call this function except for empirical studies of how additional sample points might influence the overall predictive
  quality of the quasi-score and/or criterion function approximations.
 
- If `\code{fit}` equals \code{TRUE}, then the function re-estimates the covariance parameters for each statistic separately
+ If `\code{fit=TRUE}`, then the function re-estimates the covariance parameters for each statistic separately
  each time a total of `\code{qsd$nfit}` new sample points have been added. Thus, we can choose whether to fit the updated
- covariance models (by the REML estimation) each time, e.g. during the estimation by \code{\link{qle}} if `\code{qsd$nfit}`=1, or after
- each 2nd, 3rd, and so on newly added point in order to limit the computational overhead.
+ covariance models (by the REML estimation method) each time, e.g. during the estimation by \code{\link{qle}} if `\code{qsd$nfit}`=1, or after
+ each 2nd, 3rd, and so on newly added point in order to limit the computational overhead. If bootstrapping was used to estimate the nugget variance
+ of kriging models of the variance matrix, then these are taken from `\code{nextData}`.
 }
 \examples{
 
@@ -50,7 +50,7 @@ Xnew <- multiDimLHS(N=2,qsd$lower,qsd$upper,X=X,
            method="augmentLHS",type="matrix")
 
 # new simulations
-Xsim <- simQLdata(sim=qsd$sim,nsim=10,X=Xnew)
+Xsim <- simQLdata(sim=qsd$simfn,nsim=10,X=Xnew)
 
 # prepare data
 Xdata <- setQLdata(Xsim,Xnew)

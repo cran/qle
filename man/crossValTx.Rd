@@ -10,46 +10,44 @@ crossValTx(qsd, cvm, theta = NULL, type = c("rmsd", "msd", "cve", "scve",
 \arguments{
 \item{qsd}{object of class \code{\link{QLmodel}}}
 
-\item{cvm}{list of prefitted covariance models from function \code{\link{prefitCV}}}
+\item{cvm}{list of prefitted covariance models obtained from function \code{\link{prefitCV}}}
 
 \item{theta}{optional, default \code{NULL}, list or matrix of points where to estimate prediction variances}
 
-\item{type}{name of prediction variance measure}
+\item{type}{name of type of prediction variance}
 
-\item{cl}{cluster object, \code{NULL} (default), see \code{\link[parallel]{makeCluster}}}
+\item{cl}{cluster object, \code{NULL} (default), of class \code{MPIcluster}, \code{SOCKcluster}, \code{cluster}}
 }
 \value{
-A matrix of estimated prediction variances for each point given by the argument \code{theta} (rows)
- and for each statistic (columns).
+A matrix of estimated prediction variances for each point given by the argument \code{theta} (as rows)
+ and for each statistic (as columns).
 }
 \description{
-The function estimates the prediction variances by a cross-validation approach (see vignette) applied to
- each sample means of the involved statistics.
+The function estimates the prediction variances by a cross-validation approach (see vignette)
+ applied to each sample means of summary statistics.
 }
 \details{
 Other than the kriging prediction variance, which solely depends on interdistances of sample points
- and estimated covariance parameters of some assumed to be known spatial covariance structure, the cross-validation
- based approach (see [4] and the vignette) even takes into account the predicted values at `\code{theta}` and thus can be seen as a more robust
- measure of variability between different spatial locations. By default, `\code{theta}` equals the current sampling set 
+ and estimated covariance parameters of some assumed to be known spatial covariance model, the cross-validation
+ based approach (see [4] and the vignette) even takes into account the predicted values at `\code{theta}` and thus can be thought of
+ a more robust measure of variability between different spatial locations. By default, `\code{theta}` equals the current sampling set 
  stored in the object `\code{qsd}`.
 
- If we set the error `\code{type}` equal to "\code{cve}", the impact on the level of accuracy (predicting at unsampled
- points) is measured by the \emph{delete-k jackknifed variance} of prediction errors. This approach does not require further
- simulations as a measure of uncertainty for predicting the sample means of statistics at new candidate points accross the parameter space.
- Note that if the attribute \code{attr(cvm,"type")} equals "\code{max}", then the maximum of kriging and CV-based prediction
- variances is returned. 
+ If we set the type of measure `\code{type}` equal to "\code{cve}", the impact on the level of accuracy (predicting at unsampled
+ points) is measured by a \emph{delete-k jackknifed variance} of prediction errors. This approach does not require further
+ simulation runs as a measure of uncertainty for predicting the sample means of statistics at new candidate points accross the parameter space.
+ If \code{attr(cvm,"type")} equals "\code{max}", then the maximum of kriging and CV-based prediction variances is returned. 
 
- In addition, other measures of prediction uncertainty are available, such as the \emph{root mean square deviation}
+ In addition, other measures of prediction uncertainty are available such as the \emph{root mean square deviation}
  (\code{rmsd}) and \emph{mean square deviation} (\code{msd}) or the \emph{standardized cross-validation error}
  (\code{scve}). The details are explained in the vignette. In order to assess the predictive quality of possibly
- different covariance structures (also depending on the initial sample size), including the comparison of different
- sizes of initial sampling designs, the following measures [8] are
- also available for covariance model validation and adapted to the cross-validation approach here by using an
- \emph{average cross-validation error} (\code{acve}), the \emph{mean square error} (\code{mse}) or the
- \emph{average standardized cross-validation error} (\code{ascve}). These last measures can only be computed in case the total number
+ different covariance models (also depending on the initial sample size), including the comparison of different
+ sizes of initial sampling designs, the following measures [8] are available for covariance model validation and adapted
+ to the cross-validation approach here by using an \emph{average cross-validation error} (\code{acve}), the \emph{mean square error} (\code{mse})
+ or the \emph{average standardized cross-validation error} (\code{ascve}). These last measures can only be computed in case the total number
  of sample points equals the number of leave-one-out covariance models. This requires to fit each cross-validation
  covariance model by \code{\link{prefitCV}} using the option `\code{reduce}`=\code{FALSE} which is then based on exactly
- one left out point. Also, we can calculate the kriging variance at the left-out sample points if we set the option `\code{type}`
+ one left-out point. Also, we can calculate the kriging variance at the left-out sample points if we set the option `\code{type}`
  equal to "\code{sigK}".
 }
 \examples{
@@ -65,7 +63,7 @@ qsd$cv.fit <- FALSE
 cvm <- prefitCV(qsd)
 theta0 <- c("mu"=2,"sd"=1)
 
-# get MSd by cross-validation at theta0 
+# get mean squared deviation using cross-validation at theta0 
 crossValTx(qsd, cvm, theta0, type = "msd")
 
 # and kriging variance  
@@ -74,7 +72,7 @@ varKM(qsd$covT,theta0,X,Tstat)
 
 }
 \seealso{
-\code{\link{prefitCV}}, \code{\link[parallel]{makeCluster}}
+\code{\link{prefitCV}}
 }
 \author{
 M. Baaske

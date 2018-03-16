@@ -41,6 +41,8 @@ static R_CallMethodDef CallEntries[] = {
 	CALLDEF(quasiDeviance,7),
     CALLDEF(covMatrix,2),
 	CALLDEF(covValue,2),
+//	CALLDEF(invertMatrix,2),
+//	CALLDEF(RSolve,3),
     {NULL, NULL, 0}
 };
 
@@ -51,7 +53,7 @@ extern "C" {
 void R_init_qle(DllInfo *info)
 {
   R_registerRoutines(info, CEntries, CallEntries, FEntries, NULL);
-  R_useDynamicSymbols(info, FALSE);
+  R_useDynamicSymbols(info, TRUE);
 }
 
 

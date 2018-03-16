@@ -158,7 +158,7 @@ first one is directly derived from quasi-likelihood theory. The so-called
   s(\theta) = \hat{Q}(\theta)^t \hat{I}(\theta)^{-1} \hat{Q}(\theta),
 \end{equation} 
 where we suppress the dependency on the observed statistics $y$ for
-convienience. In particular, the QS and QD are considered as inexpensive approximations
+convenience. In particular, the QS and QD are considered as inexpensive approximations
 of their respective counterparts if $T$ could be computed from $X$ under the
 model $\Ptheta$ without error at any $\theta\in\D$. The QD - roughly speaking - measures the
 ''deviance`` of the QS vector from zero and thus provides a global view on the estimation
@@ -392,21 +392,17 @@ criterion function. The algorithm stops sampling new evaluation points as soon a
 of these conditions hold and immediately terminates the estimation.\par
 %
 The statistical conditions measure the improvement of the QS approximation
-achieved at iteration $n$, for example, the maximum variance of the estimated QS
-approximation error
-\[
-    C^{max}_{n}=\max\{\text{diag}(\hat{C}_n)\},
-\]
-where $\hat{C}_n$ is defined in \eqref{qsError}. Since $C^{max}_n$ may strongly
+achieved at iteration $n$. Since any criterion for stopping may strongly
 fluctuate from one iteration to another due to the simulation variability,
-we require to hold $C^{max}_n<C_{tol}$ for at least $N^C$ consecutive
-iterations, where $N^C$ can be specified as an input argument to the algorithm.
-Secondly, we compare the approximation error of the QS to its overall
-achievable accuracy measured by the estimated QI matrix via the maximum generalized eigenvalue, say
-$\lambda^{max}_{n}$. Then, if $\lambda^{max}_n<\lambda_{tol}$ holds for at least
-$N^{\lambda}$ consecutive iterations we stop sampling. Both conditions relate to the fact of only approximately
-knowing the QS vector based on the assumed stochastic model within a black box treatment of the
-involved expectations and variances. We immediately stop the main iteration of
+we require some of them to hold for at least a number of consecutive iterations
+wich can be specified as an input argument to the algorithm. More specifically,
+we compare the approximation error of the QS to its overall achievable accuracy measured
+by the estimated QI matrix via the maximum generalized eigenvalue, say
+$\lambda^{max}_{n}$. If $\lambda^{max}_n<\lambda_{tol}$ or
+$\lambda^{rel}_n<\lambda_{rel}$ hold for at least $N^{\lambda}$, respectively,
+$N^{\lambda_{rel}}$ consecutive iterations we stop sampling. Both conditions relate to the fact
+of only approximately knowing the QS vector based on the assumed stochastic model within a black
+box treatment of the involved expectations and variances. We immediately stop the main iteration of
 the allgorithm if any of the above termination condition holds.\par
 % Numerical stopping conditions
 In order to monitor the numerical convergence of the iterates, let
@@ -516,9 +512,9 @@ Besides a pre-specified weight pattern the algorithm also includes an automated
 adjustment of the weights according to the progress of the iterates and achieved
 accuracy of the QS approximation. By this, we intend to faciliate convergence
 of our method. We say that the current local phase at iteration $n$ was
-\emph{successful} in case the following conditions hold
+\emph{successful} in case the following holds
 \[
- s_n<s_{n-1},\; \lambda^{max}_n<\lambda^{max}_{n-1},\; C^{max}_n<C^{max}_{n-1}
+ s_n<s_{n-1},\; \lambda^{max}_n<\lambda^{max}_{n-1}
 \]
 and \emph{failed} otherwise. We record the number successful and failed local
 phase iterations and as soon as the above conditions hold for a certain
@@ -1043,15 +1039,17 @@ quantile \eqref{empQuantile} of the test statistic.\par
 We can also derive a statistical stopping condition (see Section
 \ref{subsec:termCond} based on the above procedure. Since the variance of the QL
 estimator is under certain conditions asymptotically equivalent to the inverse of the
-quasi-information in \eqref{qi} we use the the relative difference
+quasi-information in \eqref{qi} we define the relative efficiency (EF) in
+spirit of the coefficient of determination from linear regression by
 \begin{equation}\label{relDif}
- \left|1-\frac{ \sqrt{\left[\frac{1}{m}\sum_{j=1}^m (\hat{\theta}-\hat{\theta}_j)(\hat{\theta}-\hat{\theta}_j)^{t}\right]_{ii}}}{ \sqrt{\left[\hat{I}(\hat{\theta})^{-1}\right]_{ii}} }\right|
+ \text{EF} = \left|1-\frac{ \left[\hat{I}(\hat{\theta})^{-1}\right]_{ii} }{\left[\frac{1}{m}\sum_{j=1}^m (\hat{\theta}-\hat{\theta}_j)(\hat{\theta}-\hat{\theta}_j)^{t}\right]_{ii}}\right|
 \end{equation} 
 for the comparison of the empirical estimation error of $\hat{\theta}\in\Rq$,
 $i=1,\ldots,q$, with its predicted error (measured by the inverse of the
-quasi-information matrix) and stop as soon as both errors deviate less than a user-defined fraction from each other for a specified number of
-consecutive iterations. Further stopping conditions can be found in the
-\proglang{R} manual of the function \code{qle}.
+quasi-information matrix) and stop as soon as both errors deviate less than a
+user-defined fraction from each other for a specified number of consecutive iterations.
+Further stopping conditions can be found in the \proglang{R} manual of the
+function \code{qle}.
 %
 \section{Estimation with qle in R}\label{sec:Restim}
 The package includes functions for simulating a user-specified statistical
@@ -1201,17 +1199,21 @@ print(S0)
 %
 The function already returns an estimated root quite close to the
 ''true`` one. However, we can improve the current estimate by letting the main
-estimation routine sample \code{maxeval} additional points at most each using
-\code{nsim} simulations. As a selection criterion we employ the ''score`` criterion
-in \eqref{scoreCrit} where the required weights are automatically adjusted. As a
-local search, respectively, root finding method we apply the quasi-scoring
-iteration and, in case of non-convergence, switch to \code{bobyqa} or even to
-\code{direct} as a search method directly appplied to the criterion function only.
+estimation routine \code{qle} sample \code{maxeval} additional points at most
+each using \code{nsim} simulations. We choose the \code{score} criterion, see
+\eqref{scoreCrit}, for selecting the next evaluation points equally weighting
+the interdistances to previous sample points (as filling in the gaps) and the
+criterion function value by \code{weights=0.5}. As a local search, respectively,
+root finding method, we apply the quasi-scoring iteration and, in case of non-convergence,
+switch to the method \code{bobyqa} or even \code{direct} as a global search
+method directly appplied to the criterion function. Note that we also
+\emph{test} a found minimizer whether it could be an approximate root of the
+quasi-score vector.
 <<>>=
 OPT <- qle(qsd,simfn,cond=cond,	     	
   global.opts = list("maxeval"=5, "NmaxLam"=5),
   local.opts = list("nextSample"="score","weights"=0.5,"ftol_abs"=1e-4,
-                    "lam_max"=1e-5,"useWeights"=TRUE),
+                    "lam_max"=1e-5,"test"=TRUE),
   method = c("qscoring","bobyqa","direct"), iseed=1356) 
 @
 %
@@ -1426,16 +1428,15 @@ Stest
 The results show a good match of the empirical and predicted error
 measures. Note that the errors resulting from the test are not directly
 compareable with the ones shown in Table \ref{tab:err} since the test
-procedure does not use new evaluation points during the re-estimation given
-the (generated) observed statistics and is only based on the fixed design
-of evaluation points stored in \code{OPT}. A comparison of the errors from
-the test and the simulation study is given below. 
+procedure does not use new evaluation points (and this simulations of the
+model) during the re-estimation given the (generated) observed statistics.
+Instead, it is solely based on the fixed design of evaluation points stored in
+the estimation results \code{OPT}. A comparison of the errors from the test and
+the simulation study is given below.
 <<>>=
 rbind("Var"=c("test"=attr(Stest,"aiqm"),"study"=qle.var[2]),
 	  "MSE"=c(as.vector(Stest$param["RMSE"]^2),qle.var[1]))
 @
-In general, the error estimation from testing is a rather ''pessimistic``
-approximation of the one derived from a simulation study.
 %
 \subsection{Estimating the parameters of a normal distribution}
 This example shows how to estimate the mean and standard deviation of a gaussian
@@ -1475,6 +1476,8 @@ criterion function. We initially sample \code{N} design points and simulate
 sim <- simQLdata(sim=simfunc,
            nsim=10,N=8,lb=lb,ub=ub,
               method="maximinLHS")
+# reset number of simulations	  
+attr(sim,"nsim") <- 100
 @
 Although, in this example, we could simulate an observed value \code{obs} of the
 statistics we use the population mean and standard deviation in order to exemplify
@@ -1497,14 +1500,16 @@ The estimated root is already quite satisfactory. However, in practice we would
 try to improve the current estimate and therfore apply the main estimation
 function \code{qle()}. The function alternates between sampling new evaluation points and,
 in our case, minimizing the quasi-deviance for monitoring the estimation
-progress. The weights for selecting the candidate points are automatically adjusted
-using the default options.
+progress. The weights for generating candidate points are automatically
+adjusted starting at the given weight \code{0.5}. As before, we test each newly
+found minimizer whether it could be an approximate root.
 <<>>=
 OPT <- qle(qsd,
         simfunc,		
-        nsim=100,
+        nsim=10,
         global.opts=list("maxeval"=50),
-        local.opts=list("lam_max"=1e-4,"weights"=0.5),
+        local.opts=list("lam_max"=1e-4,"weights"=0.5,
+        "useWeights"=FALSE,"test"=TRUE),
 		iseed=123)
 print(OPT)
 @
@@ -1755,22 +1760,37 @@ a maximum of \code{maxeval} evaluations and the quasi-scoring iteration as the
 primary local minimization routine or root finding method respectively. In
 addition to new evaluation points, we also perform a goodness-of-fit test,
 setting \code{test}=\code{TRUE}, of every local minimizer and use
-the corresponding simulation results for improving the current kriging approximations.
+the corresponding simulation results for improving the current kriging
+approximations. The following sets some options for the quasi-scoring iteration.
+<<eval=FALSE>>=
+qs.opts <-
+ list("xscale"=c(10,0.1,1),
+  "xtol_rel"=1e-10,
+  "ftol_stop"=1e-8,
+  "ftol_rel"=1e-6,
+  "ftol_abs"=1e-4,
+  "score_tol"=1e-4)
+@
+The estimation is started by:
 <<eval=FALSE>>=
 OPT <- qle(qsd, simClust, cond=cond,  
-		global.opts = list("maxiter"=10,
-                           "maxeval" = 20,
-                           "weights"=c(1,5,10)),
-		local.opts = list("lam_max"=1e-2,
-                          "nextSample"="score",
-                          "ftol_abs"=1e-2,
-                          "weights"=c(0.55),
-                          "eta"=c(0.025,0.075),
-                          "test"=TRUE),
-		method = c("qscoring","bobyqa","direct"),
-		pl=2, errType="max", iseed=297, cl=cl)
+ qscore.opts = qs.opts,
+ global.opts = list("maxiter"=10,"maxeval" = 20,
+                "weights"=c(50,10,5,1,0.1),
+                "NmaxQI"=5,"nstart"=100,
+                "xscale"=c(10,0.1,1)),
+ local.opts = list("lam_max"=1e-2,
+                "nobs"=200, # number of (bootstrap) observations for testing
+                "nextSample"="score", # sampling criterion
+                "ftol_abs"=1e-2, # lower bound on criterion value, triggers testing
+                "weights"=c(0.55), # constant weight factor
+                "eta"=c(0.025,0.075), # ignored, automatic adjustment of weights
+                "test"=TRUE), # testing is enabled
+		method = c("qscoring","bobyqa","direct"), # restart methods		
+		errType="max", # use max of kriging and CV error
+        iseed=297, cl=cl) # set seed and pass cluster object for re-use
 @
-The results of the quasi-likelihood estimation are
+The result of the quasi-likelihood estimation is 
 <<>>=
 print(OPT)
 @
@@ -1812,9 +1832,17 @@ is the best one according to the criteria defined in Section \ref{subsec:check}.
 We can assess the goodness-of-fit (see Section \ref{subsec:testing}) of
 the estimated parameter based on a simulated sample of size \code{nsim}.
 <<eval=FALSE>>=
-Stest <- qleTest(OPT,sim=simClust,cond=cond, 
-  nsim=1000,method=c("qscoring","bobyqa","direct"),  
-  cl=cl,verbose=TRUE)
+par0 <- OPT$par 
+obs0 <- OPT$qsd$obs
+# testing `par0` with observed statistics `obs0`
+# which can be replaced by the user and are obsolete below
+Stest <- qleTest(OPT, # estimation results
+          par0=par0, # parameter to test
+          obs0=obs0, # alternative observed statistics
+          sim=simClust,cond=cond,nsim=100,
+          method=c("qscoring","bobyqa","direct"), # restart methods
+          opts=qs.opts, control=list("ftol_abs"=1e-8), # minimization options 
+          multi.start=1L, cl=cl, verbose=TRUE) # multi-start and parallel options
 @
 <<>>=
 print(Stest)
@@ -1925,7 +1953,7 @@ Instead, it is strongly recommended to use a local cluster object (see
 \code{makeCluster}).} for details) or distributing the tasks to a
 multi-processor cluster. This mostly reduces the computational overhead produced by auxiliary
 computational tasks. The package \pkg{qle} automatically compiles when
-installed. The current version used for the examples of this vignette is 0.16-5.
+installed. The current version used for the examples of this vignette is 0.17.
 %
 \section*{Acknowledgments}
 The authors would like to thank the German Science Foundation (DFG) for financial support of

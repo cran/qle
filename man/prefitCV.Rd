@@ -12,33 +12,33 @@ prefitCV(qsd, reduce = TRUE, type = c("cv", "max"), control = list(),
 
 \item{reduce}{if \code{TRUE} (default), reduce the number of covariance models to refit}
 
-\item{type}{type of prediction variances, "\code{cv}" (default), see \code{\link{qle}}}
+\item{type}{type of prediction variances, "\code{cv}" (default) and "\code{max}", see \code{\link{crossValTx}}}
 
-\item{control}{control arguments for REML estimation passed to \code{\link[nloptr]{nloptr}}}
+\item{control}{control arguments for REML estimation, passed to \code{\link[nloptr]{nloptr}}}
 
-\item{cl}{cluster object, \code{NULL} (default), see \code{\link[parallel]{makeCluster}}}
+\item{cl}{cluster object, \code{NULL} (default), of class \code{MPIcluster}, \code{SOCKcluster}, \code{cluster}}
 
 \item{verbose}{if \code{TRUE}, print intermediate output}
 }
 \value{
 A list of certain length depending on the current sample size (number of evaluated points).
- Each list element corresponds to a (reduced) number of sample points with at most \eqn{k} points
- (see details) left out for fitting the covariance models.
+ Each list element corresponds to a (possibly reduced) number of sample points with at most \eqn{k} points
+ (see details) left-out for fitting the corresponding covariance models.
 }
 \description{
 The function constructs a list of covariance models of statistics in order to estimate the prediction error
- variances by a cross-validation (CV) approach at unsampled points.
+ variances by a cross-validation approach at unsampled points.
 }
 \details{
-Using the CV-based approach (see vignette) for estimating the prediction variances 
-	might require a refit of covariance parameters of each statistic based on leaving out a certain number of sample points.
- The covariance models can be refitted if `\code{fit}` equals \code{TRUE} and otherwise are simply updated without fitting which
- saves some computational resources. The number of points left out is dynamically adjusted depending on the number
+Using the cross-validation approach (see vignette) for estimating the prediction variances 
+	might require a refit of covariance parameters of each statistic based on the remaining sample points.
+ The covariance models are refitted if `\code{fit}` equals \code{TRUE} and otherwise simply updated without fitting which
+ saves some computational resources. The number of points left-out, if applicable, is dynamically adjusted depending on the number
  of sample points in order to prevent the main estimation algorithm to fit as many models as there are points already evaluated.  
 
- For CV the number \eqn{n_c} of covariance models still to fit, that is, the number of partitioning sets of sample points, is limited by
+ The number \eqn{n_c} of covariance models still to fit, that is, the number of partitioning sets of sample points, is limited by
  \eqn{n_c\leq n}, with maximum \eqn{k} sampling points deleted from the full sample set with overall \eqn{n} sample points such that
- \eqn{n=n_c k} (see vignette for further details).
+ \eqn{n=n_c k} (see also the vignette for further details).
 }
 \examples{
   data(normal)

@@ -5,7 +5,8 @@
 # Date:  	27/07/2017
 # Author: 	Markus Baaske
 # 
-# Testing quasi-deviance return values 
+# Testing quasi-deviance return values
+# Shows how quasi-score, quasi-deviance, variances are computed
 
 library(qle)
 data(normal)
@@ -15,11 +16,16 @@ x0 <- c("mu"=2,"sigma"=1)
 Xs <- as.matrix(qsd$qldata[c(1,2)])
 Tstat <- qsd$qldata[c(3,4)]
 pred <- estim(qsd$covT,x0,Xs,Tstat,krig.type="var")[[1]]
+pred2 <- estim(qsd$covT,x0,Xs,Tstat,krig.type="dual")[[1]]
 
-# compute quasi-deviance
+# compute quasi-deviance with use of kriging variances
 D <- quasiDeviance(x0,qsd,verbose=TRUE)[[1]]
+# and without use of kriging variances,
+# then no modified QD can be computed including no variances
+# of the quasi-score vector
 qsd$krig.type <- "dual"
 Ds <- quasiDeviance(x0,qsd,verbose=TRUE)[[1]]
+# and reset
 qsd$krig.type <- "var"
 
 # quasi-score
@@ -31,7 +37,7 @@ B <- D$jac%*%invS
 # of sample mean of statistic Z=E[T(X)]
 stopifnot(D$sig2==pred$sigma2)
 D$score
-(qs <- B%*%(qsd$obs-pred$mean))
+t(qs <- B%*%(qsd$obs-pred$mean))
 
 # quasi-information
 D$I

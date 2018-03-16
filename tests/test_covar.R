@@ -10,7 +10,7 @@
 library(qle)
 data(normal)
 
-# default reml optimization controls, see nloptr
+# show default reml optimization controls (see also package nloptr)
 attr(qsd,"opts")
 
 # first covariance model
@@ -27,5 +27,15 @@ fit <- fitCov(covT,X,T,verbose=TRUE)[[1]]
 
 # reml value at fitted parameters
 p <- attr(fit,"optres")$solution
-reml(covT,p,T,X)
-attr(fit,"optres")$objective
+
+(valp <- reml(covT,p,T,X))
+(obj <- attr(fit,"optres")$objective)
+stopifnot(valp == obj)
+
+# get reml function value for the first covariance model
+# at other parameters, e.g.,
+p <- c(0.001,1.8,1e-5)
+reml(qsd$covT[1],p,qsd$qldata[c("mean.T1")],X)
+
+# and same for second covariance model
+reml(qsd$covT[2],p,qsd$qldata[c("mean.T2")],X)

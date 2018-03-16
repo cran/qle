@@ -22,14 +22,19 @@ typedef double (*cov_func)(cov_model_s *, double *);
 double covMatern(cov_model_s *cov, double *h);
 double covSirfk(cov_model_s *cov, double *h);
 double covPowExp2(cov_model_s *cov, double *h);
+double covExp(cov_model_s *cov, double *h);
 
 ///-> no Calloc(,) here!
 typedef struct cov_model_s {
     cov_func cf;
 	cov_param *param;
 
-    int npar, trend;
-    double nugget, *nuggfix;
+    int npar,
+	    trend,
+		ln; 					// length of nuggfix
+
+    double nugget,				// global nugget (estimated by reml)
+	      *nuggfix;				// local nugget variances
 
     cov_model_s(SEXP R_Cov);
 

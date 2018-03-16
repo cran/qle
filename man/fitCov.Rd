@@ -2,39 +2,43 @@
 % Please edit documentation in R/covariance.R
 \name{fitCov}
 \alias{fitCov}
-\title{Fitting covariance models by REML estimation}
+\title{Covariance parameter estimation}
 \usage{
 fitCov(models, Xs, data, controls = list(), cl = NULL, verbose = FALSE)
 }
 \arguments{
-\item{models}{object either of class \code{krige}, a list of covariance models, or of
-class \code{covModel}, that is, a single covariance model}
+\item{models}{object either of class \code{krige}, a list of covariance models or an object of
+class \code{covModel} (a single covariance model)}
 
-\item{Xs}{matrix of sample points, the design}
+\item{Xs}{matrix of sample points (design points)}
 
 \item{data}{data frame of simulated sample means of statistics
-first column corrsponds to the first model in the list `\code{models}` and so forth}
+first column corresponds to the first model in the list `\code{models}` and so forth}
 
 \item{controls}{list of control parameters, see \code{\link[nloptr]{nloptr}}}
 
-\item{cl}{cluster object, \code{NULL} (default), see \code{\link[parallel]{makeCluster}}}
+\item{cl}{cluster object, \code{NULL} (default), of class "\code{MPIcluster}", "\code{SOCKcluster}", "\code{cluster}"}
 
-\item{verbose}{logical, \code{TRUE} for intermediate output}
+\item{verbose}{logical, \code{FALSE} (default) for intermediate output}
 }
 \value{
 An object of class \code{reml} which consists of a list of named lists
- (`\code{model}`, `\code{convergence}`) each storing a fitted covariance model itself
- together with the optimization results from \code{\link[nloptr]{nloptr}} as an attribute
- named `\code{optres}`. The default method for estimating the covariance parameters is \code{\link[nloptr]{mlsl}}.
+ (of elements `\code{model}` and `\code{convergence}`) each storing a fitted covariance model
+ together with optimization results from a call to \code{\link[nloptr]{nloptr}} as an attribute
+ named `\code{optres}` if \code{verbose=TRUE}. The default method for estimation is \code{\link[nloptr]{mlsl}} which
+ uses random starting points and thus produces different results if it is run more than onces. If the results strongly vary,
+ then the corresponding REML function might have many local minima which precludes the use of this default algorithm and another
+ one, e.g. `\code{NLOPT_GN_DIRECT}` (see \code{\link[nloptr]{nloptr.print.options}}), might lead to better results.
 }
 \description{
-The function estimates the (hyper)parameters of the covariance models by
-	  the \emph{Restricted Maximum Likelihood} (REML) method.
+The function estimates the (hyper)parameters of a list of covariance models `\code{models}` by
+	  the \emph{Restricted Maximum Likelihood} (REML) estimation method.
 }
 \details{
 The function fits a list of covariance models using the REML method. In order to avoid singularities
- of the so-called trend matrices make sure to use at least the minimum required number of sample points stored in
- `\code{Xs}` which depends on the defined trend order, see \code{\link{setCovModel}}.
+ of the so-called trend matrices make sure to use at least the minimum required number of sample points given by
+ `\code{Xs}` which depends on trend order, see \code{\link{setCovModel}}. THe use is given an advice if the trend order does
+ not match the required number of (initial) design points.
 }
 \examples{
 data(normal)  

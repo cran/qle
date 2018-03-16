@@ -238,19 +238,38 @@ geneigen <- function(A = NULL, B, vl=TRUE, vr=TRUE, only.values = TRUE,
     
 }
 
-gsiSolve <- function(X,b,cond=1e-10) {
-	if( length(X) > 1 ) {
+gsiSolve <- function(X,B=diag(1,NROW(X)),cond=1e-12,...,use.solve=TRUE) {
+	stopifnot(is.matrix(X))
+	if(use.solve){
+		x <- try(solve(X,B,...),silent=TRUE)
+		if(!inherits(x,"try-error"))
+			return (x)
+	}
+	
+	if( NROW(X) > 1 ) {
 		SVD <- svd(X)
-		MEV <- max(SVD$d)
-		with(SVD,v%*% (ifelse(d>MEV/cond,1/d,0) * (t(u)%*%b)))
-	} else if(all(is.finite(b/X))) b/X else b*0
+		if(inherits(SVD,"error"))
+			stop("SVD in `gsiSolve`failed.")
+		d <- SVD$d
+		SVD$v%*% (ifelse(d>cond,1/d,0) * (t(SVD$u)%*%as.matrix(B)))
+	} else if(all(is.finite(X))) as.matrix(B)/X
+	else stop("Non finite values in matrix `X`.")
 }
 
-gsiInv <- function(X,cond=1e-10) {
-	if(length(X) > 1) {
+gsiInv <- function(X, cond=1e-12, ..., use.solve=TRUE) {
+	stopifnot(is.matrix(X))
+	if(use.solve){
+		Xinv <- try(solve(X,...),silent=TRUE)
+		if(!inherits(Xinv,"try-error"))
+		  return (Xinv)
+	}
+	
+	if(NROW(X) > 1) {
 		SVD <- svd(X)
 		if(inherits(SVD,"error"))
 		  stop("SVD in `gsiInv`failed.")
-		with(SVD,v%*% diag(ifelse(d>max(SVD$d)/cond,1/d,0)) %*%t(u))
-	} else 1/X
+	    d <- SVD$d
+		SVD$v %*% diag(ifelse(d>cond,1/d,0)) %*% t(SVD$u)		
+	} else if(all(is.finite(X))) 1/X
+	 else stop("Non finite values in matrix `X`.")
 }

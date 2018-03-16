@@ -13,10 +13,11 @@ getDefaultOptions(xdim)
 List of options.
 }
 \description{
-Print default options for global and local optimization in function \code{\link{qle}}
+Print default options for global and local optimization routines
+for function \code{\link{qle}}
 }
 \details{
-The function returns a lists of available options
+The function returns a list of available options
  for functions \code{\link{qscoring}} and \code{\link{qle}}.
 }
 \examples{
