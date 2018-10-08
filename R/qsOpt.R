@@ -362,7 +362,7 @@ cverrorTx <- function(points, Xs, dataT, cvm, Y, type, cl = NULL) {
 #' 
 #' # design matrix and statistics
 #' X <- as.matrix(qsd$qldata[,1:2])
-#' Tstat <- qsd$qldata[grep("^mean.",names(qsd$qldata))]
+#' Tstat <- qsd$qldata[grep("^mean[.]",names(qsd$qldata))]
 #' 
 #' # construct but do not re-estimate
 #' # covariance parameters by REML for CV models
@@ -906,16 +906,17 @@ searchMinimizer <- function(x0, qsd, method = c("qscoring","bobyqa","direct"),
 #' @param nstart 	  number of random samples from which to start local searches (if `\code{x0}`=\code{NULL}, then ignored)
 #' @param optInfo 	  logical, \code{FALSE} (default), whether to store original local search results
 #' @param multi.start logical, \code{FALSE} (default), whether to perform a multistart local search always otherwise only if first local search did not converge 
+#' @param cores		  integer, number of local CPU cores used, default is \code{options(mc.cores,1L)}
 #' @param cl 	 	  cluster object, \code{NULL} (default), of class \code{MPIcluster}, \code{SOCKcluster}, \code{cluster}
 #' @param pl		  print level, use \code{pl}>0 to print intermediate results
 #' @param verbose	  if \code{TRUE} (default), print intermediate output
-#' @param cores		  integer, number of local CPU cores used, default is \code{options(mc.cores,1L)}
 #' 
 #' @details The function performs a number of local searches depending which local method `\code{method}` was passed to
 #'  \code{\link{searchMinimizer}}. Either the starting points are given by `\code{x0}` or are generated as an augmented 
 #'  design based on the sample set stored in `\code{qsd}`. The function evaluates all found solutions and selects the one which 
 #'  is best according to the criteria defined in the vignette. If none of the criteria match, then the parameter for which the lowest value
-#'  of the criterion function was found is returned. 
+#'  of the criterion function was found is returned. Multistart searches can be done using a cluster object. Then for each generated/given obervation
+#'  a number of \code{cores>1} multistart searches is performed in parallel if \code{fun="mclapply"} using the local cores of each cluster node. 
 #' 
 #' @return Object of class \code{QSResult} and attribute `\code{roots}`, i.e. the matrix of estimated parameters for which any of
 #'  the available minimization methods has been successfully applied. If `code{optInfo}` is \code{TRUE}, then the originally estimtation reuslts
@@ -939,22 +940,23 @@ searchMinimizer <- function(x0, qsd, method = c("qscoring","bobyqa","direct"),
 #' @rdname multiSearch
 #' @author M. Baaske 
 #' @export 
-multiSearch <- function(x0=NULL, qsd, ..., nstart=10, optInfo=FALSE,
-		         		 multi.start=FALSE, cl=NULL, pl = 0L, verbose=FALSE,
-						 	cores=getOption("mc.cores",1L))
+multiSearch <- function(x0 = NULL, qsd, ..., nstart = 10, optInfo = FALSE,
+		         		 multi.start = FALSE, cores = 1L, cl = NULL, pl = 0L, verbose = FALSE)
 {	 	
 	if(!(nstart > 0L))
 	 stop("Number of multistart points must be greater than zero!")
  	
     args <- list(...)
+	# no restart here
 	args$restart <- NULL
 	
 	S0 <- if(!is.null(x0)){
 	   if(!is.list(x0))
 		 x0 <- .ROW2LIST(x0)
 	   # use only first provided method, usually `qscoring`
-	   # if non convergence then do a multistart search
-	   do.call(searchMinimizer,c(list(x0=x0[[1]],qsd=qsd,restart=FALSE),args))
+	   # if non convergence then do a multistart search if enabled
+	   # otherwise use a restart with some nloptr minimization routine				
+	   do.call(searchMinimizer,c(list(x0=x0[[1]],qsd=qsd,restart=!multi.start),args))
 	 } else NULL
 	
 	if(!is.null(S0)){
@@ -986,13 +988,13 @@ multiSearch <- function(x0=NULL, qsd, ..., nstart=10, optInfo=FALSE,
 			 } else return(.qleError(message=msg,call=match.call(),error=Xs))
 		 }
 		 if(verbose)
-		   cat("Multi-start local search...\n")
+		   cat("Multi-start local search (",nstart," points) \n")
 	     RES <- do.call(doInParallel,
 				 c(list(X=Xs,
 					FUN=function(x,...){
 						searchMinimizer(x,...)						# including a restart by default
 					},
-					cl=cl,cores=cores,qsd=qsd), args))		
+					cl=cl,cores=cores,fun="mclapply",qsd=qsd), args))		
    	
 	} else { RES <- list(S0) }	
 	
@@ -1003,7 +1005,7 @@ multiSearch <- function(x0=NULL, qsd, ..., nstart=10, optInfo=FALSE,
       return (RES[[1]])
 	
 	# check results again
-	ok <- which(sapply(RES,function(x) !.isError(x) & x$convergence >= 0L))
+	ok <- which(sapply(RES,function(x) !.isError(x) && x$convergence >= 0L))	
 	if(length(ok) == 0L){
 		msg <- .makeMessage("All local searches did not converge.")
 		message(msg)
@@ -1055,10 +1057,15 @@ multiSearch <- function(x0=NULL, qsd, ..., nstart=10, optInfo=FALSE,
 #' @param method		vector of names of local search methods which are applied in consecutive order	
 #' @param qscore.opts   list of control arguments passed to \code{\link{qscoring}}
 #' @param control		list of control arguments passed to any of the routines defined in `\code{method}` 
-#' @param errType		type of prediction variances, choose one of "\code{kv,cv,max}" (see details)  
+#' @param errType		type of prediction variances, choose one of "\code{kv}","\code{cv}", "\code{max}" (see details)  
 #' @param pl			print level, use \code{pl}>0 to print intermediate results
-#' @param cl			cluster object, \code{NULL} (default), of class \code{MPIcluster}, \code{SOCKcluster}, \code{cluster} 
-#' @param iseed			integer seed, \code{NULL} (default) for default seeding of the random number generator (RNG) stream for each worker in the cluster
+#' @param use.cluster   logical, \code{FALSE} (default), whether to use the cluster environment `\code{cl}` for computations other than model simulations or
+#'   a multicore forking which requires to set \code{options(qle.multicore="mclapply")} using at least a number of cpus 
+#' 	 cores \code{>1}, e.g. \code{options(mc.cores=2L)}.
+#' @param cl			cluster object, \code{NULL} (default), of class "\code{MPIcluster}", "\code{SOCKcluster}", "\code{cluster}" 
+#' @param iseed			integer, seed number, \code{NULL} (default) for default seeding of the random number generator (RNG) stream for each worker in the cluster or
+#' 						  for parallel processing by "\code{mclapply}", if available on non windows platforms. Note that only using the RNG L'Ecuyer-CMRG
+#' 						  leads to reproducible results. Only for \code{iseed} different from \code{NULL} a seed is set including any cluster worker.
 #' @param plot 			if \code{TRUE}, plot newly sampled points (for 2D-parameter estimation problems only)
 #'
 #' @return List of the following objects:
@@ -1166,19 +1173,31 @@ multiSearch <- function(x0=NULL, qsd, ..., nstart=10, optInfo=FALSE,
 #'  is somewhat ad hoc but may reflect the users preference on guiding the whole estimation more biased towards either a local
 #'  or global search. In addition the local weights can be dynamically adjusted if `\code{useWeights}` is \code{FALSE}
 #'  depending on the current progress of estimation. In this case the first weight given by `\code{locals.opts$weights}` is 
-#'  initially used for this kind of adjustment.   
+#'  initially used for this kind of adjustment. Make sure to export all functions to the cluster environment `\code{cl}` beforehand,
+#'  loading required packages on each cluster/compute node, which are used in the model simulation function (see \code{\link{clusterExport}}
+#'  and \code{\link{clusterApply}}). 
 #'  }
 #' 
-#'  Some notes: For a 2D parameter estimation problem the function can visualize the sampling and selection process, which
-#'  requires an active 2D graphical device in advance. The function can also be run in an cluster environment
-#'  using the `\code{parallel}` package. Make sure to export all functions to the cluster environment `\code{cl}` beforehand,
-#'  loading required packages on each cluster node, which are used in the simulation function
-#'  (see \code{\link{clusterExport}} and \code{\link{clusterApply}}).
-#'  If no cluster object is supplied, a local cluster is set up based on forking (under Linux) or as a socket connection
-#'  for other OSs. One can also set an integer seed value `\code{iseed}` to initialize each worker, see \code{\link{clusterSetRNGStream}},
-#'  for reproducible results of estimation in case a local cluster object is used, i.e. \code{cl=NULL} and option \code{mc.cores>1}. If
-#'  using a prespecified cluster object in `\code{cl}`, then the user is responsible for seeding whereas the seed can be passed to the function
-#'  and is then stored in the return value, see attribute `\code{optInfo}$iseed`.  
+#'  \subsection{Parallel options}{
+#'  Parallel processing of all computations is supported either by the multicore approach (spawning/forking tasks by "\code{mclapply}" for non Windows-based systems) using the parallel
+#'  package or a (user-defined) cluster object, e.g. created by \code{\link{makeCluster}}, currently of class \code{"MPIcluster","SOCKcluster","cluster"} which supports calling
+#'  the function \code{\link{parLapply}}. By default there is no parallel processing. A cluster object will be automatically created for functions which also could take such object as an argument
+#'  (if \code{NULL}) locally on a single host and finalized after function termination.
+#'  In this case, the cluster is set up based on a local forking (under Linux) or as a local \code{PSOCK} connection with a number of CPUs available for other operating systems. The option
+#'  "\code{mc.cores}", e.g. \code{options(mc.cores=2L}, sets the number of cores used for both types of parallel computations. One can also set an integer value `\code{iseed}` as a seed to
+#'  initialize each worker/thread, see also \code{\link{clusterSetRNGStream}}, for reproducible results of any function involving random outputs if \code{mc.cores>1} and RNG kind L'Ecuyer-CMRG. 
+#'  Seeding is either done via setting \code{iseed} once the user calls the function \code{\link{qle}} or beforehand using a cluster defined elsewhere
+#'  in the user calling program. Then the user should set \code{iseed=NULL} in order to not reinitialize the seed. The seed passed is stored in the attribute `\code{optInfo}$iseed` of the
+#'  final return value. If no cluster object is provided, the user sets \code{mc.cores>1L} and \code{options(qle.multicore="mclapply")}, then most computations and model simulations are performed
+#'  by function "\code{mclapply}" on a single host. In particular, the user-defined stochastic model simulations can be performed in a cluster environment `\code{cl}` whereas all other
+#'  computations are spawned to the cpus of a single host setting \code{use.cluster=FALSE}. We recommend to specify a cluster object once in the user calling program and pass it to functions which take 
+#'  an cluster object as their argument, e.g. \code{\link{qle}}. Auxiliary computations, e.g. local optimizations or root findings by \code{\link{multiSearch}}, should be run in parallel on a single host
+#'  with many CPUs, e.g. setting \code{options(qle.multicore="mclapply")} and \code{mc.cores>1}. For parallel computations without using a cluster object on a local host simply set both options to "\code{mclapply}"
+#'  and \code{mc.cores>1}.  
+#'  }
+#'  
+#'  For a 2D parameter estimation problem the function can visualize the sampling and selection process, which
+#'  requires an active 2D graphical device in advance.    
 #' 
 #'  The following controls `\code{local.opts}` for the local search phase are available:
 #'   \itemize{
@@ -1258,10 +1277,9 @@ multiSearch <- function(x0=NULL, qsd, ..., nstart=10, optInfo=FALSE,
 #' @importFrom graphics points
 qle <- function(qsd, sim, ... , nsim, x0 = NULL, obs = NULL,
 		        Sigma = NULL, global.opts = list(), local.opts = list(),
-				  method = c("qscoring","bobyqa","direct"),
-				   qscore.opts = list(), control = list(),
-				    errType = "kv", pl = 0, 
-					 cl = NULL, iseed = NULL, plot=FALSE)
+				  method = c("qscoring","bobyqa","direct"),   qscore.opts = list(),
+				   control = list(), errType = "kv", pl = 0, use.cluster = FALSE,
+				     cl = NULL, iseed = NULL, plot=FALSE)
 {		
 	# print information 	
 	.printInfo = function(){		
@@ -1478,37 +1496,56 @@ qle <- function(qsd, sim, ... , nsim, x0 = NULL, obs = NULL,
 	if(any(globals$weights < 0L))
 	  stop("Weights for global sampling must be positive!")
   	mWeightsGL <- length(globals$weights)
-	# parallel options: seeding
-	# the seed is stored if given
+	
+	# parallel options: seeding, the seed is stored if given
 	noCluster <- is.null(cl)
-	tryCatch({
-		if(noCluster){
-			cores <- getOption("mc.cores",1L)
-			type <- if(Sys.info()["sysname"]=="Linux")
-					  "FORK" else "PSOCK"			
-			if(cores > 1L) 
-			  try(cl <- parallel::makeCluster(cores,type=type),silent=FALSE)
-		    # re-initialize in any case (see `set.seed`)		    
-			if(!is.null(cl)){
-				clusterSetRNGStream(cl,iseed)			  	 
-			} else noCluster <- FALSE
-		}				
-	},error = function(e)  {
-		noCluster <- FALSE
+	if(!exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) runif(1)
+	
+	tryCatch({	
+		cores <- getOption("mc.cores",1L)
+		if(cores > 1L || !noCluster) {			
+			if(noCluster && getOption("qle.multicore","lapply") == "mclapply"){
+				# Only for L'Ecuyer-CMRG we get reproducible results					   
+				if(.Platform$OS.type != "windows"){
+					if(!is.null(iseed) && RNGkind()[1L] == "L'Ecuyer-CMRG")
+						set.seed(iseed)
+				} else {
+					options(mc.cores=1L)
+					message(.makeMessage("Parallel processing by 'mclapply' is not available on a windows platform. Consider to use a cluster object."))
+				}
+			} else {			
+				if(noCluster){
+					## only a 'local' cluster is supported here
+					type <- if(Sys.info()["sysname"] == "Linux")
+								"FORK" else "PSOCK"
+					cl <- parallel::makeCluster(cores,type=type)				
+				}
+				if(any(class(cl) %in% c("MPIcluster","SOCKcluster","cluster"))){
+					# Only for L'Ecuyer-CMRG we get reproducible results for a cluster
+					if(!is.null(iseed) && RNGkind()[1L] == "L'Ecuyer-CMRG")
+						parallel::clusterSetRNGStream(cl,iseed)
+				} else {
+					stop(paste0("Failed to initialize cluster: unsupported cluster class: ",class(cl)))
+				}
+			}			
+		} else if(!is.null(iseed)) set.seed(iseed)		
+			
+	},error = function(e)  {		
+	    cl <- NULL
 		message(.makeMessage("Could not initialize cluster object."))
 	})	
-	   	
+		   	
  	# select criterion function	
 	criterionFun <- 
 		switch(qsd$criterion,
 			"mahal" = {				  		  
 				  function(x,...) {				  
-					mahalDist(x,qsd,Sigma,cvm=cvm,inverted=TRUE,check=FALSE,...,cl=cl)
+					mahalDist(x,qsd,Sigma,cvm=cvm,inverted=TRUE,check=FALSE,...,cl=if(use.cluster) cl else NULL)
 				  }  
 			 },
 			 "qle" = {				  
 				 function(x,...)
-					quasiDeviance(x,qsd,NULL,cvm=cvm,check=FALSE,...,cl=cl)					
+					quasiDeviance(x,qsd,NULL,cvm=cvm,check=FALSE,...,cl=if(use.cluster) cl else NULL)					
 			 }, { stop("Unknown criterion function!") }
 		) 
  
@@ -1553,7 +1590,7 @@ qle <- function(qsd, sim, ... , nsim, x0 = NULL, obs = NULL,
 				if(useCV <- (errId > 1)) {
 					if(pl > 0L)
 					 cat("Update cross-validation covariance models...\n")
-					cvm <- try(prefitCV(qsd,type=errType,cl=cl),silent=TRUE) 
+					cvm <- try(prefitCV(qsd,type=errType,cl=if(use.cluster) cl else NULL),silent=TRUE) 
 					if(.isError(cvm)) {						
 						cvm <- NULL
 						message("Prefit of CV models failed during final surrogate minimization.")			
@@ -1566,7 +1603,8 @@ qle <- function(qsd, sim, ... , nsim, x0 = NULL, obs = NULL,
 				S0 <- multiSearch(xs, qsd=qsd, method=method, opts=qscore.opts, control=control,
 							Sigma=Sigma, W=W, theta=theta, inverted=TRUE, cvm=cvm,
 							 check=FALSE, nstart=max(globals$nstart,(xdim+1L)*nrow(X)),
-							  multi.start=status[["global"]]>1L, pl=pl, cl=cl, verbose=pl>0L)
+							  multi.start=status[["global"]]>1L, pl=pl,
+							   cl=if(use.cluster) cl else NULL, verbose=pl>0L)
 				
 				# store local minimization results
 				tmplist <- list("S0"=S0)				
@@ -1599,7 +1637,8 @@ qle <- function(qsd, sim, ... , nsim, x0 = NULL, obs = NULL,
 							      # from `xt` fails to converge
 								  .rootTest(xt, ft, I, newObs[[1]], locals$alpha, qsd$criterion,
 										  qsd, method, qscore.opts, control, Sigma=Sigma, W=W,
-										   theta=theta, cvm=cvm, multi.start=1L, Npoints=nrow(X), cl=cl)	
+										   theta=theta, cvm=cvm, multi.start=1L, Npoints=nrow(X),
+										    cl=if(use.cluster) cl else NULL)	
 								  
 							  }, error = function(e){
 								  msg <- .makeMessage("Testing approximate root failed: ",
@@ -1960,10 +1999,10 @@ qle <- function(qsd, sim, ... , nsim, x0 = NULL, obs = NULL,
 					  # `x` is a local minimum
 					  updateQLmodel(qsd, rbind("d"=Snext$par,"x"=Stest$par), 
 							 structure(c(newSim,newObs),nsim=c(nsim,locals$nobs),class="simQL"),						 
-							 fit=TRUE, cl=cl, verbose=pl>0L)					 
+							 fit=TRUE, cl=if(use.cluster) cl else NULL, verbose=pl>0L)					 
 				 } else {
-					  updateQLmodel(qsd, Snext$par, newSim,						 
-							 fit=TRUE, cl=cl, verbose=pl>0L)
+					  updateQLmodel(qsd, Snext$par, newSim, fit=TRUE,
+						cl=if(use.cluster) cl else NULL, verbose=pl>0L)
 				 }
 									
 				# check results of kriging
@@ -1989,8 +2028,9 @@ qle <- function(qsd, sim, ... , nsim, x0 = NULL, obs = NULL,
 				# always multistart and include last (global) sample point `Snext$par` as a starting point
 				S0 <- multiSearch(Snext$par, qsd=qsd, method=method, opts=qscore.opts, control=control,
 						Sigma=Sigma, W=W, theta=theta, inverted=TRUE, cvm=cvm,
-						check=FALSE, nstart=max(globals$nstart,(xdim+1L)*nrow(X)),
-						multi.start=TRUE, pl=pl, cl=cl, verbose=pl>0L)
+						 check=FALSE, nstart=max(globals$nstart,(xdim+1L)*nrow(X)),
+						  multi.start=TRUE, pl=pl, cl=if(use.cluster) cl else NULL,
+						   verbose=pl>0L)
 				
 				# overwrite last sample point if local minimization was successful
 				if(!.isError(S0) && S0$convergence >= 0L){					
@@ -2039,13 +2079,10 @@ qle <- function(qsd, sim, ... , nsim, x0 = NULL, obs = NULL,
 				class = c("qle","error"), call = sys.call(), error=e)	
 							
 		}, finally = {
-		  if(noCluster) {
-			if(inherits(try(stopCluster(cl),silent=TRUE),"try-error")){
-			  	rm(cl)				
-				message("Error in stopping cluster.")
-		  	} else {
-				cl <- NULL				
-			}
+		  if(noCluster && !is.null(cl)) {
+			if(inherits(try(parallel::stopCluster(cl),silent=TRUE),"try-error"))
+			   message(.makeMessage("Failed to stop cluster object."))
+		  	cl <- NULL			
 			invisible(gc())
 		  }
 		}
@@ -2054,7 +2091,6 @@ qle <- function(qsd, sim, ... , nsim, x0 = NULL, obs = NULL,
 	# stop on error 
 	if(.isError(dummy))
 	 return(dummy)
-	
  
 	## only for estimte theta=(xt,ft)	
 	ctls["stopval",c(2,4)] <- c(ft,ft < ctls["stopval","cond"])	
@@ -2300,8 +2336,8 @@ nextLOCsample <- function(S, x, n, lb, ub, pmin = 0.05, invert = FALSE) {
 	if(anyNA(S) || !is.matrix(S))
 		warning("Variance matrix has `NaN` values. A matrix?")
 	if( rcond(S) < sqrt(.Machine$double.eps)) {
-	  warning(" Variance matrix is nearly ill conditioned.")
-	  if( (is.pos = .isPosDef(X)) != 0L )
+	  warning(" Variance matrix is ill-conditioned.")
+	  if( (is.pos = .isPosDef(S)) != 0L )
 		 return(.qleError(message=.makeMessage("Variance matrix not positive definite: ",is.pos),
 				  call=match.call(), S=structure(S,is.pos=is.pos))) 
  	}

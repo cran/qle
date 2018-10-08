@@ -4,8 +4,8 @@
 \alias{getQLmodel}
 \title{Setup the quasi-likelihood approximation model all at once}
 \usage{
-getQLmodel(runs, lb, ub, obs, X = NULL, useVar = TRUE, criterion = "qle",
-  ...)
+getQLmodel(runs, lb, ub, obs, X = NULL, useVar = TRUE,
+  criterion = "qle", ...)
 }
 \arguments{
 \item{runs}{object of class \code{simQL}, simulation results from \code{\link{simQLdata}}}

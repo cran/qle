@@ -4,8 +4,8 @@
 \alias{setQLdata}
 \title{Setup of quasi-likelihood data for estimation}
 \usage{
-setQLdata(runs, X = NULL, var.type = "cholMean", Nb = 0, na.rm = TRUE,
-  verbose = FALSE)
+setQLdata(runs, X = NULL, var.type = "cholMean", Nb = 0,
+  na.rm = TRUE, verbose = FALSE)
 }
 \arguments{
 \item{runs}{list or matrix of simulation results obtained from \code{\link{simQLdata}}}

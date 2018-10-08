@@ -35,11 +35,8 @@ Only for the quasi-likelihood approach the function inspects the (numerical) con
  the components of the quasi-score vector.
 }
 \examples{
- data(normal)
+ data(qleresult)
 
- # a dummy estimation result
- OPT <- qle(qsd,qsd$simfn,global.opts=list("maxeval"=0))
- 
  # and just a single root 
  checkMultRoot(OPT,verbose=TRUE)
 

@@ -41,7 +41,7 @@
 #' p <- c("mu"=2,"sd"=1)
 #' 
 #' # get simulated statistics at design X
-#' Tstat <- qsd$qldata[grep("^mean.",names(qsd$qldata))]
+#' Tstat <- qsd$qldata[grep("^mean[.]",names(qsd$qldata))]
 #' 
 #' # low level prediction, variances and weights
 #' estim(qsd$covT,p,X,Tstat,krig.type="var")
@@ -150,7 +150,7 @@ jacobian.covModel <- function(models, points, Xs, data,
 #' p <- c("mu"=2,"sd"=1)
 #' 
 #' # get simulated statistics at design X
-#' Tstat <- qsd$qldata[grep("^mean.",names(qsd$qldata))]
+#' Tstat <- qsd$qldata[grep("^mean[.]",names(qsd$qldata))]
 #' 
 #' # predict and extract 
 #' predictKM(qsd$covT,p,X,Tstat)
@@ -876,4 +876,125 @@ multiDimLHS <- function(N, lb, ub, method = c("randomLHS","maximinLHS","augmentL
 			lhs.grid
 		}
      )
+}
+
+#' @name Subset of statistics
+#' 
+#' @title Optimal subset selection of statistics
+#' 
+#' @description The function finds a subset of at most \eqn{kmax <= p} statistics, where \code{p} is the number of available statistics
+#' in the list `\code{qsd$covT}` (and at least of size equal to the length \code{q} of the parameter `\code{theta}`) and thus minimizes the expected
+#' estimation error of the parameter when this subset is used for estimation. Based on the eigenvalue decomposition of the
+#' variance-covariance matrix of the statistics this subset is chosen among all subsets of size at most equal to `\code{kmax}` or for
+#' which all proportional contributions to each parameter component are greater than or equal to `\code{cumprop}` whatever happens first.
+#' 
+#' Since both matrices depend on `\code{theta}` so does the chosen subset of statistics. However, using a list of parameters as `\code{theta}`
+#' returns a list of corresponding subsets. One can then easily choose the most frequent subset among all computed ones given either
+#' a sample of parameters distributed over the whole parameter space or an appropriate smaller region, where, e.g., the
+#' starting point is chosen from or the true model parameter is expected to lie in. 
+#' 
+#' @param theta 	list or matrix of points where to compute the criterion function
+#' 				 	and to choose `\code{kmax}` statistics given the QL model `\code{qsd}`
+#' @param qsd		object of class \code{\link{QLmodel}} 
+#' @param kmax   	number of statistics to be selectnred (q <= \code{kmax} <= p)
+#' @param cumprop	numeric vector either of length one (then replicated) or equal to the length of `\code{theta}` which sets the
+#' 				    proportions (0 < \code{cumprop} <= 1) of minimum overall contributions to each parameter component given the statistics 					
+#' @param ...		further arguments passed to \code{\link{quasiDeviance}} or \code{\link{mahalDist}}
+#' @param cl		cluster object, \code{NULL} (default), of class \code{MPIcluster}, \code{SOCKcluster}, \code{cluster}
+#' @param verbose  	logical, \code{TRUE} for intermediate output
+#' 
+#' @return A list which consists of 
+#' 	\item{id}{ indices of corresponding statistics}
+#' 	\item{names}{ names of statistics (if provided)}
+#'  \item{cumprop}{ cumulated proportions of contributions of selected statistics to each of the parameter components} 
+#'  \item{sorted}{ list of statistics (for each parameter) sorted in decreasing order of proportional contributions to the quasi-information}  
+#' 
+#' @rdname optStat
+#' 
+#' @examples
+#'  data(normal)
+#'  # must select all statistics and thus using the
+#'  # full information since we only have to statistics available 
+#'  optStat(c("mu"=2,"sigma"=1),qsd,kmax=2)[[1]]
+#' 
+#' @author M. Baaske
+#' @export 
+optStat <- function(theta, qsd, kmax = p, cumprop = 1, ..., cl = NULL, verbose=FALSE) 
+{	
+	p <- length(qsd$covT)
+	q <- attr(qsd$qldata,"xdim")
+	stopifnot(length(cumprop)>0L)
+	if(kmax > p || q > kmax)	
+	 stop("`kmax` must be at most equal to the number of available statistics and at least equal to the number of model parameter.")	
+ 	if(length(cumprop) > 1L){
+		if(length(cumprop) != q)
+		  stop("`cumprop` must be of length equal to number of parmater components or a scalar value.")
+	 	else { stopifnot(all(cumprop<=1) && all(cumprop>0)) }
+	} else cumprop <- rep(cumprop,q)
+	
+	# quasi-deviance
+	QD <- quasiDeviance(theta,qsd,...,value.only=FALSE,cl=cl,verbose=verbose) 
+	
+	# evaluate statistics at theta
+	ret <- doInParallel(QD,
+			FUN=function(x,q,p,kmax,prop) {
+				V <- attr(x,"Sigma")	  
+				nms <- colnames(V)
+				if(is.null(nms)){
+					nms <- paste0("V",1:p)
+					attr(V,"dimnames") <- list(nms,nms)
+				}
+				S <- try(eigen(V),silent=TRUE)
+				if(inherits(S,"try-error"))
+				  return(S) 
+				L <- (x$jac %*% S$vectors %*% diag(1/sqrt(S$values)))^2
+				# relative to total contribution
+				L <- L/rowSums(L)
+				colnames(L) <- nms
+				# sort each row as contribution of each statistic to each parameter
+				M <- lapply(1:nrow(L),function(i) sort(L[i,], decreasing=TRUE))
+				# find either kmax best statistics or until cumulative proportions
+				# for each parameter component are greater than prop				
+			    T <- sapply(M,"[",1)
+				dup <- duplicated(names(T))
+				# use only non duplicated names
+				if(any(dup)){
+				 T[names(T[dup])[1]] <- max(T[dup]) 
+				 T <- T[!dup] 
+				}
+				if( kmax > q && min(T) < min(prop) ) {
+					stp <- FALSE
+					for(i in 2:p){
+						B <- sapply(M,"[",i)
+						ix <- order(B,decreasing=TRUE)					
+						for(k in ix){
+						  if(names(B[k]) %in% names(T))
+							next
+						  else {
+							 T <- c(T,B[k])
+							 if(length(T) == kmax || 
+								all(sapply(M, function(x) sum(x[names(T)])) >= prop) ){
+							   stp <- TRUE
+							   break;					     
+						   	 }
+						  }
+					    }
+						if(stp) break
+					}		
+				}
+			    names(M) <- names(theta)
+				id <- na.omit(pmatch(names(T),colnames(V)))
+				# rank matrix
+				rankM <- matrix(0,nrow=q,ncol=p)
+				dimnames(rankM) <- list(names(theta),nms)
+				for(i in 1:nrow(rankM))
+					rankM[i,] <- pmatch(colnames(rankM),names(M[[i]]))
+				
+				structure(list("id"=id, "names"=names(T),
+					"cumprop"=apply(L, 1, function(x) sum(x[id])),
+					"sorted"=M, "rankMat"=rankM))		
+			}, q=q, p=p, kmax=kmax, prop=cumprop,
+			cl=cl)	
+			
+	return( ret )
 }

@@ -77,7 +77,43 @@ NULL
 #'    \itemize{
 #' 	   \item{simfn}{ simulation function }
 #'     \item{sim}{ simulation results at design points, class `\code{simQL}`}
+#'	   \item{OPT}{ result from call to estimation function \code{qle}}
+#' 	   \item{QS}{ quasi-scoring iteration results after initial approximation} 
 #' 	  }
+#' @author M. Baaske
+NULL
+
+#' QLE estimation results of the normal model
+#' 
+#' The results of estimating the parameters of the normal model by Quasi-likelihood. 
+#' 
+#' @docType data
+#' @keywords datasets
+#' @name OPT
+#' @usage data(qleresult)
+#' @format A list named `\code{OPT}` of class \code{\link{qle}}, see function \code{\link{qle}}
+#' @author M. Baaske
+NULL
+
+
+#' QLE estimation results of M/M/1 queue
+#' 
+#' The results of estimating the parameter of M/M/1 queue by Quasi-likelihood. 
+#' 
+#' @docType data
+#' @keywords datasets
+#' @name mm1q
+#' @usage data(mm1q)
+#' @format A list named `\code{mm1q}` with elements 
+#' \itemize{
+#' 	   \item{qsd}{ initial quasi-likelihood approximation model}
+#'     \item{OPT}{ the results of estimation by \code{\link{qle}}}
+#'     \item{Stest}{ score test results }
+#' 	   \item{OPTS}{ results from simulation study, see the vignette}
+#' 	   \item{Stest0}{ Score test after estimating the model parameter }
+#' 	   \item{tet0}{ original parameter value}
+#' 	   \item{obs0}{ generated observed statistics for simulation study}
+#'   }
 #' @author M. Baaske
 NULL
 

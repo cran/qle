@@ -4,8 +4,8 @@
 \alias{multiDimLHS}
 \title{Multidimensional Latin Hypercube Sampling (LHS) generation}
 \usage{
-multiDimLHS(N, lb, ub, method = c("randomLHS", "maximinLHS", "augmentLHS"),
-  X = NULL, type = c("list", "matrix"))
+multiDimLHS(N, lb, ub, method = c("randomLHS", "maximinLHS",
+  "augmentLHS"), X = NULL, type = c("list", "matrix"))
 }
 \arguments{
 \item{N}{number of points to randomly select or augment an existing sample set}

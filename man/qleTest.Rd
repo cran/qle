@@ -6,7 +6,8 @@
 \usage{
 qleTest(est, par0 = NULL, obs0 = NULL, ..., sim, criterion = NULL,
   nsim = 100, obs = NULL, alpha = 0.05, multi.start = 0L,
-  na.rm = TRUE, cl = NULL, iseed = NULL, verbose = FALSE)
+  na.rm = TRUE, cores = 1L, cl = NULL, iseed = NULL,
+  verbose = FALSE)
 }
 \arguments{
 \item{est}{object of class \code{qle}, the estimation results from function \code{\link{qle}}}
@@ -30,6 +31,8 @@ qleTest(est, par0 = NULL, obs0 = NULL, ..., sim, criterion = NULL,
 \item{multi.start}{integer, \code{=0,1,2}, level of multi start root finding (see details)}
 
 \item{na.rm}{logical, \code{TRUE}  (default), whether to remove `NA` values from the matrix of re-estimated parameters}
+
+\item{cores}{number of cores for multistart searches for each given/generated observation, only if \code{multi.start>0} enabled and ignored otherwise}
 
 \item{cl}{cluster object, \code{NULL} (default), of class \code{MPIcluster}, \code{SOCKcluster}, \code{cluster}}
 
@@ -57,7 +60,11 @@ with attributes:
       the re-estimated parameters have `NA`s, criterion function minimizations failed or did not converge numerically,
       the integer seed value `\code{iseed}`}
 }
-\details{ The function tests the null hypothesis \eqn{H_0:\,\hat{\theta}=\theta_0}, that is, whether the statistical
+\description{
+Monte Carlo hypothesis testing
+}
+\details{
+The function tests the null hypothesis \eqn{H_0:\,\hat{\theta}=\theta_0}, that is, whether the statistical
  model w.r.t. to the estimated parameter explains the observed statistics, against the alternative \eqn{H_1:\,\hat{\theta}\neq\theta_0} based
  on a Monte Carlo approach (see vignette). Due to the approximate nature of the assumed statistical model for the observed statistics the
  exact distribution of the test statistics, that is, the Mahalanobis distance or quasi-deviance, is generally unknown and therefore
@@ -85,9 +92,6 @@ with attributes:
  excluded from the test results and stored in the attribute `\code{info}`. In addition, as part of the returned data frame `\code{param}`
  the empirical standard error, predicted standard error (based on the average inverse quasi-information matrix), the root mean square error,
  the bias and sample mean value of the re-estimated parameters are also available. For a full example we refer the reader to the package vignette.
-}
-\description{
-Monte Carlo hypothesis testing
 }
 \author{
 M. Baaske

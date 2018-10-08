@@ -5,7 +5,8 @@
 \title{Quasi-scoring iteration}
 \usage{
 qscoring(qsd, x0, opts = list(), Sigma = NULL, ..., inverted = FALSE,
-  check = TRUE, cvm = NULL, Iobs = TRUE, pl = 0L, verbose = FALSE)
+  check = TRUE, cvm = NULL, Iobs = TRUE, pl = 0L,
+  verbose = FALSE)
 }
 \arguments{
 \item{qsd}{object of class \code{\link{QLmodel}}}

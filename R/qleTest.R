@@ -203,11 +203,8 @@
 #'  the components of the quasi-score vector.  
 #'  
 #' @examples 
-#'  data(normal)
+#'  data(qleresult)
 #' 
-#'  # a dummy estimation result
-#'  OPT <- qle(qsd,qsd$simfn,global.opts=list("maxeval"=0))
-#'  
 #'  # and just a single root 
 #'  checkMultRoot(OPT,verbose=TRUE)
 #' 
@@ -413,30 +410,12 @@ checkMultRoot <- function(est, par = NULL, opts = NULL,	verbose = FALSE)
 #' @param alpha			significance level for testing the hypothesis
 #' @param multi.start   integer, \code{=0,1,2}, level of multi start root finding (see details)
 #' @param na.rm 		logical, \code{TRUE}  (default), whether to remove `NA` values from the matrix of re-estimated parameters
+#' @param cores 		number of cores for multistart searches for each given/generated observation, only if \code{multi.start>0} enabled and ignored otherwise
 #' @param cl			cluster object, \code{NULL} (default), of class \code{MPIcluster}, \code{SOCKcluster}, \code{cluster}
 #' @param iseed			integer, the seed for initializing the cluster workers for parallel computations 
 #' @param verbose   	logical, \code{TRUE} for intermediate output
 #'
-#' @return An object of class \code{qleTest} as a list of:
-#'  \item{param}{ data frame of estimated parameters and error measures}
-#' 	\item{test}{ the test result}
-#'  \item{Stest}{ name of the test} 
-#' 
-#' with attributes:
-#' 
-#' 	 \item{msem}{ mean square error matrix of re-estimated parameters}
-#'   \item{aiqm}{ average inverse quasi-information matrix over all re-estimated parameters}
-#' 	 \item{qi}{ inverse quasi-information matrix at the parameter to be tested `\code{est$par}`}
-#'   \item{relEF}{ relative difference of the empirial and predicted standard error of the parameter to be tested} 
-#'   \item{obs}{ list of simulated statistics either at the estimated parameter or at the optional parameter `\code{par0}`}
-#'   \item{optRes}{ results from re-estimating the model parameters for each simulated observation `\code{obs}`}
-#'	 \item{mean.score}{ average quasi-score, respectively, average gradient of the MD at the re-estimated parameters}
-#' 	 \item{criterion}{ name of criterion function used as a test statistic: "\code{qle}" or "\code{mahal}"}  
-#' 	 \item{info}{ list of the following elements: indices of re-estimation results where the inversion of the quasi-information matrix failed,
-#'       the re-estimated parameters have `NA`s, criterion function minimizations failed or did not converge numerically,
-#'       the integer seed value `\code{iseed}`}
-#' 
-#'  @details The function tests the null hypothesis \eqn{H_0:\,\hat{\theta}=\theta_0}, that is, whether the statistical
+#' @details The function tests the null hypothesis \eqn{H_0:\,\hat{\theta}=\theta_0}, that is, whether the statistical
 #'  model w.r.t. to the estimated parameter explains the observed statistics, against the alternative \eqn{H_1:\,\hat{\theta}\neq\theta_0} based
 #'  on a Monte Carlo approach (see vignette). Due to the approximate nature of the assumed statistical model for the observed statistics the
 #'  exact distribution of the test statistics, that is, the Mahalanobis distance or quasi-deviance, is generally unknown and therefore
@@ -465,12 +444,31 @@ checkMultRoot <- function(est, par = NULL, opts = NULL,	verbose = FALSE)
 #'  the empirical standard error, predicted standard error (based on the average inverse quasi-information matrix), the root mean square error,
 #'  the bias and sample mean value of the re-estimated parameters are also available. For a full example we refer the reader to the package vignette.
 #' 
+#' @return An object of class \code{qleTest} as a list of:
+#'  \item{param}{ data frame of estimated parameters and error measures}
+#' 	\item{test}{ the test result}
+#'  \item{Stest}{ name of the test} 
+#' 
+#' with attributes:
+#' 
+#' 	 \item{msem}{ mean square error matrix of re-estimated parameters}
+#'   \item{aiqm}{ average inverse quasi-information matrix over all re-estimated parameters}
+#' 	 \item{qi}{ inverse quasi-information matrix at the parameter to be tested `\code{est$par}`}
+#'   \item{relEF}{ relative difference of the empirial and predicted standard error of the parameter to be tested} 
+#'   \item{obs}{ list of simulated statistics either at the estimated parameter or at the optional parameter `\code{par0}`}
+#'   \item{optRes}{ results from re-estimating the model parameters for each simulated observation `\code{obs}`}
+#'	 \item{mean.score}{ average quasi-score, respectively, average gradient of the MD at the re-estimated parameters}
+#' 	 \item{criterion}{ name of criterion function used as a test statistic: "\code{qle}" or "\code{mahal}"}  
+#' 	 \item{info}{ list of the following elements: indices of re-estimation results where the inversion of the quasi-information matrix failed,
+#'       the re-estimated parameters have `NA`s, criterion function minimizations failed or did not converge numerically,
+#'       the integer seed value `\code{iseed}`}
+#' 
 #' @author M. Baaske
 #' @rdname qleTest
 #' @export
 qleTest <- function(est, par0 = NULL, obs0=NULL, ..., sim, criterion = NULL,
 		             nsim = 100, obs = NULL, alpha = 0.05, multi.start = 0L,
-					  na.rm = TRUE, cl = NULL, iseed = NULL, verbose = FALSE)
+					  na.rm = TRUE, cores = 1L, cl = NULL, iseed = NULL, verbose = FALSE)
 {				  
 	if(.isError(est))
 	  stop("Estimation result has errors. Please see attribute `error`.")    
@@ -601,10 +599,11 @@ qleTest <- function(est, par0 = NULL, obs0=NULL, ..., sim, criterion = NULL,
 						# not in parallel!
 						multiSearch(x0=par0,qsd=est$qsd,...,   		
 						 cvm=est$cvm,obs=obs,inverted=TRUE,check=FALSE,
-						   multi.start=(multi.start > 1L),cl=NULL,verbose=FALSE,cores=1L)		# multi.start = 2L, then always multi-start
+						   multi.start=(multi.start>1L),cl=NULL,						# multi.start = 2L, then always multi-start
+						   cores=cores,verbose=FALSE) 
 					},
 					cl=cl), opt.args))
-	} else {																					# never multi-start but restart if provided another routine
+	} else {																			# never multi-start but restart if provided another routine
 		if(verbose)
 			cat("Re-estimate parameters:","\n")
 		#including restart if more than one method is given

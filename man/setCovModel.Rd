@@ -4,9 +4,9 @@
 \alias{setCovModel}
 \title{Set a covariance model}
 \usage{
-setCovModel(model = "sirfk", param = NULL, npoints = 0, var.sim = NULL,
-  nugget = 0.00015, trend = 2, fixed.param = NULL, lower = NULL,
-  upper = NULL, ...)
+setCovModel(model = "sirfk", param = NULL, npoints = 0,
+  var.sim = NULL, nugget = 0.00015, trend = 2, fixed.param = NULL,
+  lower = NULL, upper = NULL, ...)
 }
 \arguments{
 \item{model}{name of covariance model: `\code{sirfk}` (default), `\code{matern}`, `\code{powexp}`, `\code{exp}`}

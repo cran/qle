@@ -5,8 +5,8 @@
 \title{A multistart version of local searches for parameter estimation}
 \usage{
 multiSearch(x0 = NULL, qsd, ..., nstart = 10, optInfo = FALSE,
-  multi.start = FALSE, cl = NULL, pl = 0L, verbose = FALSE,
-  cores = getOption("mc.cores", 1L))
+  multi.start = FALSE, cores = 1L, cl = NULL, pl = 0L,
+  verbose = FALSE)
 }
 \arguments{
 \item{x0}{numeric, \code{NULL} default, list, vector or matrix of starting parameters}
@@ -21,13 +21,13 @@ multiSearch(x0 = NULL, qsd, ..., nstart = 10, optInfo = FALSE,
 
 \item{multi.start}{logical, \code{FALSE} (default), whether to perform a multistart local search always otherwise only if first local search did not converge}
 
+\item{cores}{integer, number of local CPU cores used, default is \code{options(mc.cores,1L)}}
+
 \item{cl}{cluster object, \code{NULL} (default), of class \code{MPIcluster}, \code{SOCKcluster}, \code{cluster}}
 
 \item{pl}{print level, use \code{pl}>0 to print intermediate results}
 
 \item{verbose}{if \code{TRUE} (default), print intermediate output}
-
-\item{cores}{integer, number of local CPU cores used, default is \code{options(mc.cores,1L)}}
 }
 \value{
 Object of class \code{QSResult} and attribute `\code{roots}`, i.e. the matrix of estimated parameters for which any of
@@ -44,7 +44,8 @@ The function performs a number of local searches depending which local method `\
  \code{\link{searchMinimizer}}. Either the starting points are given by `\code{x0}` or are generated as an augmented 
  design based on the sample set stored in `\code{qsd}`. The function evaluates all found solutions and selects the one which 
  is best according to the criteria defined in the vignette. If none of the criteria match, then the parameter for which the lowest value
- of the criterion function was found is returned.
+ of the criterion function was found is returned. Multistart searches can be done using a cluster object. Then for each generated/given obervation
+ a number of \code{cores>1} multistart searches is performed in parallel if \code{fun="mclapply"} using the local cores of each cluster node.
 }
 \examples{
  data(normal)

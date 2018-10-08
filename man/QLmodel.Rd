@@ -6,7 +6,8 @@
 \usage{
 QLmodel(qldata, lb, ub, obs, mods, nfit = 1, cv.fit = TRUE,
   var.type = c("wcholMean", "cholMean", "wlogMean", "logMean", "kriging",
-  "const"), useVar = TRUE, criterion = c("qle", "mahal"), verbose = FALSE)
+  "const"), useVar = TRUE, criterion = c("qle", "mahal"),
+  verbose = FALSE)
 }
 \arguments{
 \item{qldata}{data frame of (initial) simulation results (see \code{\link{setQLdata}})}

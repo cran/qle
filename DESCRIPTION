@@ -1,7 +1,7 @@
 Package: qle
 Title: Simulation-Based Quasi-Likelihood Estimation
-Version: 0.17-1
-Date: 2018-03-16
+Version: 0.18
+Date: 2018-10-04
 Authors@R: c(person("Markus", "Baaske", role = c("aut", "cre", "cph"),
 			 email = "markus.baaske@uni-jena.de"),
 			 person("K. Gerald", "van den Boogaart", role = c("ths"),
@@ -15,9 +15,11 @@ Imports: nloptr, digest, expm, lhs, mvtnorm
 Suggests: rlecuyer, spatstat
 License: GPL (>= 3)
 Repository/R-Forge/Project: qle
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0
 ByteCompile: true
 NeedsCompilation: yes
-Packaged: 2018-03-16 12:06:43 UTC; root
 Repository: CRAN
-Date/Publication: 2018-03-16 17:20:25 UTC
+Repository/R-Forge/Revision: 254
+Repository/R-Forge/DateTimeStamp: 2018-10-08 10:57:24
+Date/Publication: 2018-10-08 12:00:03 UTC
+Packaged: 2018-10-08 11:11:02 UTC; rforge

@@ -146,17 +146,14 @@ void print_R_vector( SEXP v, const std::string& vector_name);
 
 // Dimension names of a matrix, UNPROTECT later
 #define SET_DIMNAMES_MATRIX(RObject,RNamedObject){ 		\
-  SEXP R_names = getAttrib(RNamedObject,R_NamesSymbol); \
-  SET_VECTOR_ELT(RObject, 0, R_names);					\
-  SET_VECTOR_ELT(RObject, 1, R_names);					\
+  SET_VECTOR_ELT(RObject, 0, getAttrib(RNamedObject,R_NamesSymbol));					\
+  SET_VECTOR_ELT(RObject, 1, getAttrib(RNamedObject,R_NamesSymbol));					\
 }
 
 // Dimension names of a matrix, UNPROTECT later
 #define SET_DIMNAMES_MATRIX2(RObject,RNamedObject0,RNamedObject1){ 		\
-  SEXP R_names0 = getAttrib(RNamedObject0,R_NamesSymbol); 				\
-  SEXP R_names1 = getAttrib(RNamedObject1,R_NamesSymbol); 				\
-  SET_VECTOR_ELT(RObject, 0, R_names0);									\
-  SET_VECTOR_ELT(RObject, 1, R_names1);									\
+  SET_VECTOR_ELT(RObject, 0, getAttrib(RNamedObject0,R_NamesSymbol));	\
+  SET_VECTOR_ELT(RObject, 1, getAttrib(RNamedObject1,R_NamesSymbol));	\
 }
 
 

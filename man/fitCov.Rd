@@ -4,7 +4,8 @@
 \alias{fitCov}
 \title{Covariance parameter estimation}
 \usage{
-fitCov(models, Xs, data, controls = list(), cl = NULL, verbose = FALSE)
+fitCov(models, Xs, data, controls = list(), cl = NULL,
+  verbose = FALSE)
 }
 \arguments{
 \item{models}{object either of class \code{krige}, a list of covariance models or an object of

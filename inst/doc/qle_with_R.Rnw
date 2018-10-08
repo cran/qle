@@ -2,7 +2,7 @@
 %\documentclass[article]{jss}
 %% usepackage 
 \usepackage[utf8x]{inputenc}
-\usepackage[active]{srcltx}
+%\usepackage[active]{srcltx}
 \usepackage{amsmath}
 %\usepackage{indentfirst}
 \usepackage{amsfonts}
@@ -1127,6 +1127,22 @@ of \code{predictKM()}, evaluating the corresponding kriging or CV
 based prediction variances by \code{varKM()} or, respectively,
 \code{crossValTx()}.
 %
+\subsection{Options for parallel processing}\label{subsec:parallel}
+The package provides two built-in types of parallel processing including the
+stochastic model simulations based on the \pkg{parallel} package. Both types can be
+combined in a HPC environment using a number of compute nodes or multiple CPUs
+of a single host. First, computations can be run in parallel by
+spawning the computations to multiple CPU cores (see
+\code{mclapply}\footnote{Note that \code{mclapply} is not available on Windows-based platforms,
+however, then run sequentially by \code{lapply}.}) or distributing the
+computations (including model simulations) to different compute nodes of a
+HPC using a number of local CPUs at each node as a kind of nested parallel processing. The user can
+pass any valid cluster object of class
+\code{"MPIcluster","SOCKcluster","cluster"} which supports calling
+\code{parallel::parLapply()} to the \pkg{qle} and others of the package. Note
+that by default computations are processed sequentially using a single CPU/core.
+Please see the manual for details of all parallel options.
+%
 \subsection{M/M/1 queue}\label{subsec:mmq}
 %\SweaveInput{mm1q.Rnw}
 As an introductory example we consider the following single-server queueing
@@ -1149,78 +1165,95 @@ as the summary statistic for estimation by our method. Thus from each
 replication of the statistical model we record the average number of customers
 in the system which, following the reasoning in Section \ref{sec:SQLE}, is approximated
 by a kriging surface, see Figure \ref{fig:mm1q1}.
-<<>>=
+<<echo=FALSE>>=
 library(qle)
-library(graphics)
+data(mm1q)
+@
+We start by setting the options for parallel processing,
+<<eval=FALSE>>=
+options(mc.cores=8L)
+options(qle.multicore="mclapply")
 RNGkind("L'Ecuyer-CMRG")
-set.seed(1356)
+set.seed(1326)
 @
 % simfn <- function(tet){ mean(rgeom(1000,prob=1-tet)) }
-First, we define the statistical model which practically leads to the
-simulation function below. For estimation of the parameter $\rho$ by our
-approach we fix the number of time points to $n=25$.
+and define the statistical model which practically leads to the
+simulation function \code{simfn} shown below. For estimation of the parameter
+$\rho$ by our approach we fix the number of time points of observations to
+$n=100$.
 <<>>=
-cond <- list("n"=25)
+cond <- list("n"=100)
 simfn <- function(tet,cond){
 	mean(rgeom(cond$n,prob=1-tet[1]))
 }
 @
 The function returns the average the number of customers in the system at steady
-state. Next, we define the lower and upper bounds of the parameter search space,
+state. Next, we set the lower and upper bounds of the parameter search space,
 <<>>=
 lb <- c("rho"=0.05)
 ub <- c("rho"=0.95)
 @
 and sample the initial design points for constructing the
-approximation of the criterion function (including the summary statistic)
-where \code{nsim} simulations are used at each design point to estimate the
+approximation of the criterion function (including the summary statistic).
+At each design point \code{nsim} simulations are used to estimate the
 sample mean of the statistic.
-<<>>=
+<<eval=FALSE>>=
 nsim <- 10
-X <- multiDimLHS(N=10,lb=lb,ub=ub,
+X <- multiDimLHS(N=9,lb=lb,ub=ub,
       method="maximinLHS",type="matrix")
-
 sim <- simQLdata(sim=simfn,cond=cond,nsim=nsim,X=X)
 @
+<<echo=FALSE>>=
+sim <- mm1q$sim
+X <- attr(sim,"X")
+nsim <- attr(sim,"nsim")
+@
 We set the ''real`` observation of the statistic $Y=y$ to \code{obs=1}
-corresponding to $\rho=0.5$. In this example the variance of $Y$ is approximated
-by the average of the matrix logarithm of the sample variance matrices at each
+corresponding to the parameter $\rho=0.5$. In this example the variance of $Y$
+is approximated by the average of the matrix logarithm of the sample variance matrices at each
 design point. We obtain the QL approximation model by
-<<>>=
+<<eval=FALSE>>=
 qsd <- getQLmodel(sim, lb, ub, obs=c("N"=1),
 		var.type="wlogMean",verbose=TRUE)
 @
 and, as a first crude estimate of the model parameter, we apply the
 quasi-scoring iteration without using further simulations.
-<<>>=
+<<eval=FALSE>>=
 S0 <- qscoring(qsd,x0=c("rho"=0.8))
+@
+<<echo=FALSE>>=
+OPT <- mm1q$OPT
+qsd <- mm1q$qsd
+S0 <- mm1q$S0
+@
+<<>>=
 print(S0)
 @
 %
-The function already returns an estimated root quite close to the
-''true`` one. However, we can improve the current estimate by letting the main
-estimation routine \code{qle} sample \code{maxeval} additional points at most
-each using \code{nsim} simulations. We choose the \code{score} criterion, see
-\eqref{scoreCrit}, for selecting the next evaluation points equally weighting
-the interdistances to previous sample points (as filling in the gaps) and the
-criterion function value by \code{weights=0.5}. As a local search, respectively,
-root finding method, we apply the quasi-scoring iteration and, in case of non-convergence,
-switch to the method \code{bobyqa} or even \code{direct} as a global search
-method directly appplied to the criterion function. Note that we also
+The function returns an estimated root already quite close to the
+''true`` one. However, we can improve the current estimate sampling
+\code{maxeval} additional points each using at most \code{nsim} simulations.
+We choose the \code{score} criterion, see \eqref{scoreCrit}, for selecting the
+next evaluation points equally weighting the interdistances to previous sample points
+(as filling in the gaps) and the criterion function value by \code{weights=0.5}.
+As a local search, respectively, root finding method, we apply the quasi-scoring iteration and,
+in case of non-convergence, switch to the method \code{bobyqa} or even
+\code{direct} as a global search method directly appplied to the criterion function. Note that we also
 \emph{test} a found minimizer whether it could be an approximate root of the
 quasi-score vector.
-<<>>=
+<<eval=FALSE>>=
 OPT <- qle(qsd,simfn,cond=cond,	     	
   global.opts = list("maxeval"=5, "NmaxLam"=5),
-  local.opts = list("nextSample"="score","weights"=0.5,"ftol_abs"=1e-4,
-                    "lam_max"=1e-5,"test"=TRUE),
-  method = c("qscoring","bobyqa","direct"), iseed=1356) 
+  local.opts = list("nextSample"="score","weights"=0.5,
+                    "ftol_abs"=1e-4, "lam_max"=1e-5),
+  method = c("qscoring","bobyqa","direct"), iseed=1326) 
 @
 %
 \setkeys{Gin}{width=0.5\textwidth}
 \begin{figure}[ht!]
 <<fig=TRUE,echo=FALSE,eps=FALSE>>=
-## statistics
+library(graphics)
+# statistics
 op <- par(xaxs='i', yaxs='i')
 rho <- as.matrix(seq(0.1,0.9,by=0.001))
 y <- as.numeric(unlist(simQLdata(sim=simfn,cond=cond,nsim=nsim,X=rho,mode="mean")))
@@ -1253,7 +1286,7 @@ abline(h=0,col="gray")
 points(X,QD,pch=3,cex=1)
 lines(p,score, type='l',col="blue",lwd=1.5) 
 lines(p,y,col="black",lwd=0.8)
-legend("topleft", c("quasi-deviance","quasi-score","sample points", "approximate root","additional samples"),
+legend("topright", c("quasi-deviance","quasi-score","sample points", "approximate root","additional samples"),
 		lty=c(1,1),lwd=c(1.5,1.5,NA,NA,NA),pch=c(NA,NA,3,5,8),
 		col=c("black","blue","black","magenta","green"),pt.cex=1,cex=1)
 points(S0$par,S0$val,col="magenta",pch=5,cex=1)
@@ -1286,7 +1319,7 @@ plot(NULL, type="n", xlab=expression(rho),
 abline(h=0,col="gray")
 lines(p,score, type='l',col="blue",lwd=1.5) 
 lines(p,y,col="black",lwd=0.8)
-legend("topleft", c("quasi-deviance","quasi-score","sample points", "QL estimate"),
+legend("topright", c("quasi-deviance","quasi-score","sample points", "QL estimate"),
 		lty=c(1,1),lwd=c(1,1,NA,NA,NA),pch=c(NA,NA,3,5,8),
 		col=c("black","blue","black","magenta","green"),pt.cex=1,cex=1)
 
@@ -1312,9 +1345,9 @@ and its (numerically evaluated) observed analogue show a good aggreement.
 The results suggest a consistent root of the quasi-score and thus a plausible
 estimate of the unknown parameter.\par
 %
-Further, we can also compute the predicted value of the summary statistic given
+Further, we compute the prediction of the summary statistic given
 the final design \code{X} and sample average values \code{Tstat} (at these
-points) by
+points) 
 <<>>=
 X <- as.matrix(OPT$qsd$qldata[,1])
 Tstat <- OPT$qsd$qldata[grep("mean.",names(qsd$qldata))]   
@@ -1322,7 +1355,7 @@ predictKM(OPT$qsd$covT,c("rho"=0.5),X,Tstat)
 @
 %
 Since the joint density function of the (simulated) observations $y$ is
-known we can derive the \emph{maximum likelihood estimator} (mle), that is,
+known we can derive the \emph{maximum likelihood estimator} (mle), which reads
 \begin{equation}\label{rhomle}
  \hat{\rho}_{mle} = 1 - \frac{1}{1+\bar{y}}
 \end{equation}
@@ -1330,8 +1363,9 @@ as the solution of Fisher`s \emph{score function},
 \[
  u(\rho)=n\left(\frac{1}{1-\rho}-\frac{\bar{y}}{\rho}\right)=0\,,
 \]
-which belongs to the exponential family of distributions in linear form. In this
-case the score function is identical to the quasi-score function,
+and belongs to the exponential family of distributions in linear form. In this
+particular case the score function from MLE is identical to the quasi-score
+function,
 \begin{equation}\label{qsmm1q}
 Q(\rho,\bar{y})=\frac{1}{(1-\rho)}\left(\frac{\rho}{n(1-\rho)^2}\right)^{-1}\left(\bar{y}-\frac{\rho}{1-\rho}\right) = u(\rho)\,.
 \end{equation}
@@ -1345,17 +1379,24 @@ matrix, which reads
 I(\rho)=\frac{1}{(1-\rho)^4}\left(\frac{\rho}{n(1-\rho)^2}\right)^{-1}=\frac{n}{\rho(1-\rho)^2}=\mathsf{Var}(\rho)^{-1}=I_{mle}(\rho).
 \]
 %
-Therefore, compared to the maximum liklihood method, the resulting
-estimation error by the quasi-likelihood approach is due to the inherent
-simulation variance and approximation error of $\bar{y}$ by kriging. This effect
-can be best exemplified by a short simulation study.\par
+%%------------------------------------------------------------------------------------------------
+%% 											Simulation study
+%%------------------------------------------------------------------------------------------------
 %
-We generate some observations at a fixed ''true`` parameter value, say
-$\rho=0.5$.
-% short simulation study
-<<>>=
+Therefore, compared to the maximum liklihood method, the resulting
+estimation error by quasi-likelihood estimation is due to the inherent
+simulation variance and approximation error of $\bar{y}$ induced by kriging
+the statistics. This effect can be best exemplified by a short simulation
+study as shown next.\par
+%
+We randomly generate observations at the ''true`` parameter $\rho=0.5$.
+<<eval=FALSE>>=
 tet0 <- c("rho"=0.5)
 obs0 <- simQLdata(sim=simfn,cond=cond,nsim=100,X=tet0)
+@
+<<echo=FALSE>>=
+tet0 <- mm1q$tet0
+obs0 <- mm1q$obs0
 @
 and compute the empirical mean squared error (MSE) of the maximum likelihood
 estimates and the average variance over all estimated variances denoted by
@@ -1370,78 +1411,89 @@ x <- mle[,1]-tet0
 mle.var <- c(sum(x^2)/length(x),mean(mle[,2]))
 @
 Given the generated set of observations \code{obs0} we now estimate the
-parameter for each observed value by our quasi-likelihood approach.
-<<>>=
-cl <- makeCluster(2)
-clusterSetRNGStream(cl)
-clusterExport(cl,list("qle"))
-OPTS <- parLapplyLB(cl,obs0[[1]],
-          function(obs,...) qle(...,obs=obs),
+model parameter for each observation by quasi-likelihood
+<<eval=FALSE>>=
+OPTS <- parLapply(cl,obs0[[1]],
+          function(obs,...) {
+           qle(...,obs=obs)
+          },
          qsd=qsd,
          sim=simfn, 
          cond=cond,
-         global.opts = list("maxeval"=5,"NmaxLam"=5),
-         local.opts = list("nextSample"="score","weights"=0.5,
-				"ftol_abs"=1e-4,"lam_max"=1e-5,
-				"useWeights"=TRUE),
-         method = c("qscoring","bobyqa","direct"))
-stopCluster(cl)
-QLE <- do.call(rbind,lapply(OPTS,
- function(x) c("qle"=x$par,"qle.var"=1/as.numeric(x$final$I))))	
+         global.opts=list("maxeval"=10,"NmaxLam"=10),
+         local.opts=list("nextSample"="score","weights"=0.5,
+                         "ftol_abs"=1e-4,"lam_max"=1e-5,
+                         "useWeights"=TRUE),
+         method=c("qscoring","bobyqa","direct"))
+@
+<<echo=FALSE>>=
+OPTS <- mm1q$OPTS
+@
+<<>>=
+# get results
+QLE <- do.call(rbind,
+        lapply(OPTS,
+          function(x) {
+           c("qle"=x$par,"qle.var"=1/as.numeric(x$final$I))
+		  }))
 y <- QLE[,1]-tet0
+# MSE and average estimated variance of the parameters
 qle.var <- c(sum(y^2)/length(y),mean(QLE[,2]))
+@
+<<echo=FALSE>>=
+Stest0 <- mm1q$Stest0
 @
 % result table
 \begin{table}[t!]
 \centering
-\begin{tabular}{l|rr}
+\begin{tabular}{l|rrr}
 Method & MSE($\hat{\rho}$) & $\overline{\mathsf{Var}}(\hat{\rho})$\\
 \hline
 qle & \Sexpr{formatC(signif(qle.var[1],digits=3))} & \Sexpr{formatC(signif(qle.var[2],digits=3))}\\
 mle & \Sexpr{formatC(signif(mle.var[1],digits=3))} & \Sexpr{formatC(signif(mle.var[2],digits=3))}\\
+Score test &
+\Sexpr{formatC(signif(as.numeric(Stest0$param["RMSE"]^2),digits=3))} & \Sexpr{formatC(signif(attr(Stest0,"aiqm"),digits=3))}\\
 \end{tabular}
 \caption{Empirical mean squared error (MSE) and average variance
-$\overline{Var}$ of the re-estimated parameters for $100$ observations using the quasi-likelihood 
-approach and maximum likelihood method.}
+$\overline{Var}$ of the re-estimated parameters for $1000$ observations using the quasi-likelihood 
+approach and maximum likelihood method compared to the results of the Score
+test without new evaluation points.
+}
 \label{tab:err}
 \end{table}
 %
 Table \ref{tab:err} summarises the empirical and predicted estimation
-errors. For both methods the predicted errors as shown by $\overline{Var}$
-compare well to the corresponding MSEs, where the results of the
-quasi-likelihood approach suggest a lower estimation error. This is due to
-the fact that, in this particular case, the maximum likelihood estimate
-$\hat{\rho}_{mle}$ in \eqref{rhomle} depends on the observed data only, whereas
-the quasi-likelihood estimate as the solution of \eqref{approxscore}, approximating the
-(quasi-)score function \eqref{qsmm1q}, depends on more (generated) data through
-the (kriging approximation of the) expectation function $\hat{Z}(\theta)$ in
-\eqref{approxscore} and thus uses a larger sample leading to more precise
-estimation results.\par
+variances resulting from the above simulation study. For both methods the
+predicted average variances as shown by $\overline{Var}$ and the empirical
+MSEs compare well.\par
 %
-Finally, we can apply the MC goodness-of-fit test (see Section
-\ref{subsec:testing}) of the estimated parameter based on the same observations
-\code{obs0}.
-<<>>=
-Stest <- qleTest(OPT,sim=simfn,cond=cond,obs=obs0)
-Stest
+Finally, we apply the MC goodness-of-fit test (see Section \ref{subsec:testing})
+of the estimated parameter based on the observations \code{obs0} taken from the
+simulation study.
+<<eval=FALSE>>=
+Stest0 <- qleTest(OPT,sim=simfn,cond=cond,obs=obs0,cl=cl)
 @
-The results show a good match of the empirical and predicted error
-measures. Note that the errors resulting from the test are not directly
-compareable with the ones shown in Table \ref{tab:err} since the test
-procedure does not use new evaluation points (and this simulations of the
-model) during the re-estimation given the (generated) observed statistics.
-Instead, it is solely based on the fixed design of evaluation points stored in
-the estimation results \code{OPT}. A comparison of the errors from the test and
-the simulation study is given below.
 <<>>=
-rbind("Var"=c("test"=attr(Stest,"aiqm"),"study"=qle.var[2]),
-	  "MSE"=c(as.vector(Stest$param["RMSE"]^2),qle.var[1]))
+print(Stest0)
 @
+%
+The result of the Score test using the same observations of the
+simulation study shows a good match of the empirical and predicted error
+measures. Note that the errors resulting from the Score test are not directly
+compareable with the ones shown in Table \ref{tab:err} since the test procedure
+does not use new evaluation points (and thus additinoal simulations of
+the model) during the re-estimation of the parameter given the simulated
+observations. Instead, it is solely based on the fixed design of evaluation
+points stored in the estimation results \code{OPT}.
+%
+%---------------------------------------------------------------------------------
+% Example: Normal distribution
+%---------------------------------------------------------------------------------
 %
 \subsection{Estimating the parameters of a normal distribution}
-This example shows how to estimate the mean and standard deviation of a gaussian
-random variable, i.\,e. the parameters $(\mu,\sigma)$. Of course, we do this
-only for pedagogical benefits since the ML estimators could also be directly obtained.
+This example shows how to estimate the mean and standard deviation
+$(\mu,\sigma)$ of a gaussian random variable. Of course,
+we do this rather for pedagogical benefits since the method of choice is ML.
 However, its simplicity allows us to demonstrate the basic steps which are
 required to initialize the method and also apply for other more complex parameter
 estimation problems in general. Besides this, it helps to understand why the
@@ -1451,11 +1503,17 @@ We define a simulation function which simply draws 10 random numbers at
 parameter $\theta=(\mu,\sigma)$ using the median and the \emph{mean
 absolute deviation} (from the median) as our informative statistics to
 characterise the model outcome.
-<<>>=
-set.seed(123)
-# setting the number of cores>1
-# uses parallel simulations and computations
-options(mc.cores=2)
+<<echo=FALSE>>=
+data(normal)
+OPT <- qsd$OPT
+QS <- qsd$QS
+simfunc <- qsd$simfn
+@
+<<eval=FALSE>>=
+# use a local cluster
+cl <- makeCluster(8L)
+clusterSetRNGStream(cl,1234)
+# simulation function
 simfunc <- function(pars) {	
 	x <- rnorm(10,mean=pars["mu"],sd=pars["sigma"])    
 	c("T1"=median(x),"T2"=mad(x))	
@@ -1464,7 +1522,7 @@ simfunc <- function(pars) {
 The simple box constraints below, \code{lb} and \code{ub}, define the parameter
 search space as lower and, respectively, upper bounds of the unknown parameter
 of equal length.
-<<>>= 
+<<eval=FALSE>>= 
 lb <- c("mu"=0.5,"sigma"=0.1)
 ub <- c("mu"=8.0,"sigma"=5.0)
 @
@@ -1472,28 +1530,29 @@ We choose a \emph{maximin design} as a pilot design in order to construct the
 initial approximation of the QS vector using the quasi-deviance as a
 criterion function. We initially sample \code{N} design points and simulate
 \code{nsim} times at each point.
-<<>>=
+<<eval=FALSE>>=
 sim <- simQLdata(sim=simfunc,
-           nsim=10,N=8,lb=lb,ub=ub,
-              method="maximinLHS")
-# reset number of simulations	  
+   nsim=10,N=8,lb=lb,ub=ub,method="maximinLHS")
+# reset number of simulations (10 x 10)  
 attr(sim,"nsim") <- 100
 @
 Although, in this example, we could simulate an observed value \code{obs} of the
 statistics we use the population mean and standard deviation in order to exemplify
 the achievable precision of the method as if the statistics could have been
 observed without error.
-<<>>= 
+<<eval=FALSE>>= 
 obs <- structure(c("T1"=2,"T2"=1),class="simQL")
 @
 Then, using the default values, we set up the approximation model by
-<<>>=
+<<eval=FALSE>>=
 qsd <- getQLmodel(sim,lb,ub,obs,var.type="wcholMean")
 @
 and start searching from the parameter \code{x0} for a root of the QS
 vector as a crude first estimate of the model parameter.
-<<>>=
+<<eval=FALSE>>=
 QS <- qscoring(qsd, x0=c("mu"=5,"sigma"=3.0))
+@
+<<>>=
 print(QS)
 @
 The estimated root is already quite satisfactory. However, in practice we would
@@ -1503,15 +1562,16 @@ in our case, minimizing the quasi-deviance for monitoring the estimation
 progress. The weights for generating candidate points are automatically
 adjusted starting at the given weight \code{0.5}. As before, we test each newly
 found minimizer whether it could be an approximate root.
-<<>>=
+<<eval=FALSE>>=
 OPT <- qle(qsd,
         simfunc,		
-        nsim=10,
+        nsim=20,
         global.opts=list("maxeval"=50),
-        local.opts=list("lam_max"=1e-4,"weights"=0.5,
-        "useWeights"=FALSE,"test"=TRUE),
-		iseed=123)
-print(OPT)
+        local.opts=list("lam_max"=1e-3,"weights"=0.5,
+        "useWeights"=FALSE,"test"=TRUE),cl=cl)
+@
+<<>>=
+OPT
 @
 \begin{figure}[t!]
 \centering
@@ -1580,19 +1640,22 @@ obs0 <- simQLdata(simfunc,X=OPT$par,nsim=1000,mode="matrix")[[1]]
 var(obs0)
 attr(OPT$final,"Sigma")
 @
-Finally, we can perform a goodness-of-fit test of the estimated parameter.
-<<>>=
-Stest <- qleTest(OPT,method=c("qscoring","bobyqa"),
-		   sim=simfunc,nsim=1000)
-Stest
+<<eval=FALSE>>=
+stopCluster(cl)
 @
-The results not only show that the null hypothesis cannot be rejected but also
-provide us with empirical and predicted estimation errors of the parameter.
-In particular, the average predicted error, which is based on the averaged
-inverse quasi-information matrix (over all re-estimated parameters),
-also relates to the standard error and the RMSE of the estimated parameter.
-% density of test statistic S
-% den <- density(attr(Stest$test,"Sb"))
+%Finally, we can perform a goodness-of-fit test of the estimated parameter.
+%<<>>=
+%Stest <- qleTest(OPT,method=c("qscoring","bobyqa"),
+%		   sim=simfunc,nsim=1000,cl=cl)
+%print(Stest)
+%@
+%The results not only show that the null hypothesis cannot be rejected but also
+%provide us with empirical and predicted estimation errors of the parameter.
+%In particular, the average predicted error, which is based on the averaged
+%inverse quasi-information matrix (over all re-estimated parameters),
+%also relates to the standard error and the RMSE of the estimated parameter.
+%% density of test statistic S
+%% den <- density(attr(Stest$test,"Sb"))
 %
 \subsection{Fitting a Mat\'{e}rn cluster point process model}
 We fit a stationary Mat\'{e}rn cluster process to the \code{redwood} point
@@ -1668,7 +1731,7 @@ ub <- c("kappa"=30,"R"=0.25,"mu"=5)
 We initialize the workers of a local cluster (FORK) which also applies in more
 general cases of parallel environments in principle.
 <<eval=FALSE>>=
-cl <- makeCluster(8)
+cl <- makeCluster(8L)
 clusterSetRNGStream(cl)
 clusterCall(cl,fun=function(x) library("spatstat", character.only=TRUE))
 clusterExport(cl=cl,varlist=c("simStat"), envir=environment())
@@ -1703,14 +1766,20 @@ Then we check whether there is any significant bias (e.\,g. over- or
 underestimation) in estimating the sample means of the statistics $Y$ by
 kriging the values at each left-out sample point and averaging over all of them
 as shown in \eqref{ACVE}.
-<<>>=
+<<eval=FALSE>>=
 crossValTx(qsd, cvm, type = "acve")
+@
+<<echo=FALSE>>=
+matclust$ACVE
 @
 The first statistic (i.\,e. the empirical intensity) might suffer from
 systematic overestimation. Therfore we compare the different estimations of
 each statistic by the their magnitudes of the mean squared CV error:
-<<>>=
+<<eval=FALSE>>=
 crossValTx(qsd, cvm, type = "mse")
+@
+<<echo=FALSE>>=
+matclust$MSE
 @
 Again, the first one is more sensitive to left-out sample points of
 the initial design compared to the other statistics. This indicates that
@@ -1721,8 +1790,11 @@ the simulation outcome. Since the true reason is extremely hard to track down in
 we do not go into details here. However, we can compare the prediction error of
 the statistics, predicted by the corresponding kriging models, with the actual
 error by the CV approach.
-<<>>=
+<<eval=FALSE>>=
 crossValTx(qsd, cvm, type = "ascve")
+@
+<<echo=FALSE>>=
+matclust$ASCVE
 @
 For values close to one the actual error (estimated by the CV approach) would be
 equal on average to the error predicted by the corresponding kriging model. In this example the values
@@ -1785,10 +1857,10 @@ OPT <- qle(qsd, simClust, cond=cond,
                 "ftol_abs"=1e-2, # lower bound on criterion value, triggers testing
                 "weights"=c(0.55), # constant weight factor
                 "eta"=c(0.025,0.075), # ignored, automatic adjustment of weights
-                "test"=TRUE), # testing is enabled
+                "test"=TRUE), # testing approximate root is enabled
 		method = c("qscoring","bobyqa","direct"), # restart methods		
 		errType="max", # use max of kriging and CV error
-        iseed=297, cl=cl) # set seed and pass cluster object for re-use
+        iseed=297, cl=cl) # store seed and use given cluster object
 @
 The result of the quasi-likelihood estimation is 
 <<>>=
@@ -1826,7 +1898,7 @@ checkMultRoot(OPT,par=par)
 @
 which shows by the row with an asterisk that the corresponding parameter
 <<>>=
-OPT$par
+QS$par
 @
 is the best one according to the criteria defined in Section \ref{subsec:check}.
 We can assess the goodness-of-fit (see Section \ref{subsec:testing}) of
@@ -1841,8 +1913,8 @@ Stest <- qleTest(OPT, # estimation results
           obs0=obs0, # alternative observed statistics
           sim=simClust,cond=cond,nsim=100,
           method=c("qscoring","bobyqa","direct"), # restart methods
-          opts=qs.opts, control=list("ftol_abs"=1e-8), # minimization options 
-          multi.start=1L, cl=cl, verbose=TRUE) # multi-start and parallel options
+          opts=qs.opts,control=list("ftol_abs"=1e-8), # minimization options 
+          multi.start=1L,cl=cl,verbose=TRUE) # multi-start and parallel options
 @
 <<>>=
 print(Stest)
@@ -1943,20 +2015,11 @@ R-Forge at (\url{http://r-forge.r-project.org/projects/qle}). It uses a
 NAMESPACE and depends on the package \pkg{parallel} \citep{pkg:stats} and
 \pkg{nloptr} \citep{pkg:nloptr} among others (see above). To reproduce the
 examples of the vignette, which are also provided as separate \proglang{R}
-source files, we recommend the package \pkg{spatstat}.\par
-%
-Many functions, where appropriate, include the option to be used in a parallel
-environment (based on the package \pkg{parallel}) either by spawning tasks to multiple
-cores of a single system (see \code{mclapply}\footnote{Note that \code{mclapply}
-is not available on Windows systems due to OS limitations.
-Instead, it is strongly recommended to use a local cluster object (see
-\code{makeCluster}).} for details) or distributing the tasks to a
-multi-processor cluster. This mostly reduces the computational overhead produced by auxiliary
-computational tasks. The package \pkg{qle} automatically compiles when
-installed. The current version used for the examples of this vignette is 0.17-1.
+source files, we recommend the package \pkg{spatstat}. The package \pkg{qle}
+automatically compiles when installed.
 %
 \section*{Acknowledgments}
-The authors would like to thank the German Science Foundation (DFG) for financial support of
+The author would like to thank the German Science Foundation (DFG) for financial support of
 this research within the framework of the priority program ''Life$\infty$``
 (SPP 1466).
 %

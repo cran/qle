@@ -749,7 +749,7 @@ fitSIRFk <- function(qldata, set.var = TRUE, var.type = "wcholMean",
 	xdim <- attr(qldata,"xdim") 									# dimension of parameter to estimate!
 	nsim <- attr(qldata,"nsim")										# number of simulation replications
 	Xs <- data.matrix(qldata[seq(xdim)])	
-	dataT <- qldata[grep("^mean.",names(qldata))]					# simulated statistic data
+	dataT <- qldata[grep("^mean[.]",names(qldata))]					# simulated statistic data
 		
 	np <- nrow(Xs)	
 	nstat <- ncol(dataT)	

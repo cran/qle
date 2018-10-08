@@ -4,8 +4,8 @@
 \alias{crossValTx}
 \title{Prediction variances by cross-validation}
 \usage{
-crossValTx(qsd, cvm, theta = NULL, type = c("rmsd", "msd", "cve", "scve",
-  "acve", "mse", "ascve", "sigK"), cl = NULL)
+crossValTx(qsd, cvm, theta = NULL, type = c("rmsd", "msd", "cve",
+  "scve", "acve", "mse", "ascve", "sigK"), cl = NULL)
 }
 \arguments{
 \item{qsd}{object of class \code{\link{QLmodel}}}
@@ -55,7 +55,7 @@ data(normal)
 
 # design matrix and statistics
 X <- as.matrix(qsd$qldata[,1:2])
-Tstat <- qsd$qldata[grep("^mean.",names(qsd$qldata))]
+Tstat <- qsd$qldata[grep("^mean[.]",names(qsd$qldata))]
 
 # construct but do not re-estimate
 # covariance parameters by REML for CV models
